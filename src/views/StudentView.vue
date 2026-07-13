@@ -53,48 +53,44 @@ onMounted(() => subscribeWorkstations());
 </script>
 
 <template>
-  <div style="display:flex;flex-direction:column;min-height:100dvh;">
-    <header class="header">
-      <div>
-        <div class="header-title">Lån utstyr</div>
-        <div class="header-subtitle">Trykk på en ledig enhet</div>
-      </div>
-      <button class="btn-admin-link" @click="currentView = 'login'">Admin</button>
-    </header>
+  <div class="student-layout">
+    <button class="admin-corner" @click="currentView = 'login'">Admin</button>
 
-    <main class="content">
-      <p v-if="workstations.length === 0" class="empty-state">Laster...</p>
-      <div v-else class="ws-grid">
-        <div
-          v-for="ws in workstations"
-          :key="ws.id"
-          class="ws-card"
-          :class="ws.status"
-          tabindex="0"
-          role="button"
-          @click="ws.status === 'available' && openBorrow(ws.id)"
-          @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
-        >
-          <div class="ws-emoji">💻</div>
-          <div class="ws-name">{{ ws.name }}</div>
-          <div v-if="ws.keyboard || ws.mouse" class="ws-detail">
+    <p v-if="workstations.length === 0" class="empty-state">Laster...</p>
+
+    <div v-else class="ws-full">
+      <div
+        v-for="ws in workstations"
+        :key="ws.id"
+        class="ws-block"
+        :class="ws.status"
+        tabindex="0"
+        role="button"
+        @click="ws.status === 'available' && openBorrow(ws.id)"
+        @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
+      >
+        <div class="ws-block-inner">
+          <div class="ws-block-emoji">💻</div>
+          <div class="ws-block-name">{{ ws.name }}</div>
+          <div v-if="ws.keyboard || ws.mouse" class="ws-block-detail">
             {{ [ws.keyboard, ws.mouse].filter(Boolean).join(" · ") }}
           </div>
-          <div v-if="ws.status === 'borrowed' && ws.borrower" class="ws-borrower">
-            {{ ws.borrower }}
+          <div class="ws-block-badge" :class="ws.status">
+            {{ ws.status === "available" ? "Trykk for å låne" : "Opptatt" }}
           </div>
-          <div class="ws-badge" :class="ws.status">
-            {{ ws.status === "available" ? "Ledig" : "Opptatt" }}
+          <div v-if="ws.status === 'borrowed' && ws.borrower" class="ws-block-borrower">
+            Lånt av: {{ ws.borrower }}
           </div>
         </div>
       </div>
-    </main>
+    </div>
 
     <Teleport to="body">
       <div v-if="showModal && selected" class="modal-overlay" @click.self="cancel">
         <div class="modal">
+          <div class="modal-emoji">💻</div>
           <h3>{{ selected.name }}</h3>
-          <p class="modal-sub">Skriv inn navnet ditt for å låne</p>
+          <p class="modal-sub">Skriv navnet ditt for å låne</p>
 
           <div class="form-group">
             <label for="name-input">Ditt navn</label>
@@ -109,10 +105,6 @@ onMounted(() => subscribeWorkstations());
             />
           </div>
 
-          <ul class="modal-items">
-            <li v-for="item in [selected.name, selected.keyboard, selected.mouse].filter(Boolean)" :key="item">{{ item }}</li>
-          </ul>
-
           <div class="modal-actions">
             <button class="btn btn-primary btn-full" :disabled="!borrowerName.trim()" @click="confirm">
               Bekreft lån
@@ -124,3 +116,119 @@ onMounted(() => subscribeWorkstations());
     </Teleport>
   </div>
 </template>
+
+<style scoped>
+.student-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  width: 100%;
+  position: relative;
+}
+
+.admin-corner {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 50;
+  background: var(--yellow);
+  color: var(--black);
+  border: none;
+  padding: 10px 18px;
+  border-radius: 100px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.ws-full {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 8px;
+  gap: 8px;
+}
+
+.ws-block {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  text-align: center;
+}
+
+.ws-block.available {
+  background: var(--yellow);
+  color: var(--black);
+}
+
+.ws-block.available:active {
+  opacity: 0.85;
+  transform: scale(0.98);
+}
+
+.ws-block.borrowed {
+  background: var(--black-card);
+  border: 2px solid var(--black-border);
+  color: var(--gray-400);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.ws-block-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ws-block-emoji {
+  font-size: 3.5rem;
+}
+
+.ws-block-name {
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.ws-block-detail {
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+.ws-block-badge {
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 6px 20px;
+  border-radius: 100px;
+  margin-top: 8px;
+}
+
+.ws-block-badge.available {
+  background: rgba(0,0,0,0.15);
+  color: var(--black);
+}
+
+.ws-block-badge.borrowed {
+  background: var(--gray-700);
+  color: var(--gray-400);
+}
+
+.ws-block-borrower {
+  font-size: 0.85rem;
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+.modal-emoji {
+  font-size: 3rem;
+  text-align: center;
+  margin-bottom: 8px;
+}
+</style>
