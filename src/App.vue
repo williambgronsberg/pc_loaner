@@ -51,6 +51,4 @@ provide("loading", loading);
   <AdminView v-else-if="currentView === 'admin'" />
 </template>
 
-<style>
-@import url("https://williambgronsberg.github.io/pc_loaner/css/style.css");
-</style>
+<style></style>

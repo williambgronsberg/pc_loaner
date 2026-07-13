@@ -11,6 +11,6 @@ export default defineConfig({
   },
   base: "/pc_loaner/",
   build: {
-    outDir: "dist",
+    outDir: "docs",
   },
 });
