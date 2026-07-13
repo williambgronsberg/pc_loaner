@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, inject, onMounted, computed } from "vue";
+import { ref, inject, onMounted, computed, nextTick } from "vue";
 import type { ViewName, ToastType } from "@/types";
 import { useDb } from "@/composables/useDb";
 
@@ -12,8 +12,9 @@ const { workstations, subscribeWorkstations, borrowWorkstation } = useDb();
 const showModal = ref(false);
 const selectedWs = ref<string | null>(null);
 const borrowerName = ref("");
+const nameInput = ref<HTMLInputElement | null>(null);
 
-const selectedWsData = computed(() =>
+const selected = computed(() =>
   workstations.value.find((ws) => ws.id === selectedWs.value)
 );
 
@@ -21,6 +22,7 @@ function openBorrow(id: string) {
   selectedWs.value = id;
   borrowerName.value = "";
   showModal.value = true;
+  nextTick(() => nameInput.value?.focus());
 }
 
 function cancel() {
@@ -29,14 +31,14 @@ function cancel() {
   borrowerName.value = "";
 }
 
-async function confirmBorrow() {
+async function confirm() {
   const name = borrowerName.value.trim();
   if (!name || !selectedWs.value) return;
   loading.value = true;
   try {
     await borrowWorkstation(selectedWs.value, name);
     showModal.value = false;
-    showToast(`Du låner ${selectedWs.value} — God bruk!`, "success");
+    showToast(`Du låner ${selectedWs.value}`, "success");
     selectedWs.value = null;
     borrowerName.value = "";
   } catch (err) {
@@ -51,68 +53,68 @@ onMounted(() => subscribeWorkstations());
 </script>
 
 <template>
-  <div class="view active" style="display:flex;flex-direction:column;min-height:100dvh;">
+  <div style="display:flex;flex-direction:column;min-height:100dvh;">
     <header class="header">
       <div>
         <div class="header-title">Lån utstyr</div>
-        <div class="header-subtitle">Trykk på en ledig enhet for å låne</div>
+        <div class="header-subtitle">Trykk på en ledig enhet</div>
       </div>
       <button class="btn-admin-link" @click="currentView = 'login'">Admin</button>
     </header>
 
     <main class="content">
-      <div v-if="workstations.length === 0" class="empty-state">Laster enheter...</div>
-      <div v-else class="workstations-grid">
+      <p v-if="workstations.length === 0" class="empty-state">Laster...</p>
+      <div v-else class="ws-grid">
         <div
           v-for="ws in workstations"
           :key="ws.id"
-          class="ws-box"
+          class="ws-card"
           :class="ws.status"
-          :tabindex="ws.status === 'available' ? 0 : -1"
+          tabindex="0"
           role="button"
-          :aria-label="ws.status === 'available' ? `Lån ${ws.name}` : `${ws.name} er utlånt`"
           @click="ws.status === 'available' && openBorrow(ws.id)"
           @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
         >
-          <div class="ws-box-icon">💻</div>
-          <div class="ws-box-name">{{ ws.name }}</div>
-          <div v-if="ws.keyboard || ws.mouse" class="ws-box-details">
+          <div class="ws-emoji">💻</div>
+          <div class="ws-name">{{ ws.name }}</div>
+          <div v-if="ws.keyboard || ws.mouse" class="ws-detail">
             {{ [ws.keyboard, ws.mouse].filter(Boolean).join(" · ") }}
           </div>
-          <div v-if="ws.status === 'borrowed' && ws.borrower" class="ws-box-borrower">
-            Lånt av: {{ ws.borrower }}
+          <div v-if="ws.status === 'borrowed' && ws.borrower" class="ws-borrower">
+            {{ ws.borrower }}
           </div>
-          <div class="ws-box-status" :class="ws.status">
-            {{ ws.status === 'available' ? 'Ledig' : 'Utlånt' }}
+          <div class="ws-badge" :class="ws.status">
+            {{ ws.status === "available" ? "Ledig" : "Opptatt" }}
           </div>
         </div>
       </div>
     </main>
 
     <Teleport to="body">
-      <div v-if="showModal && selectedWsData" class="modal-overlay" @click.self="cancel">
+      <div v-if="showModal && selected" class="modal-overlay" @click.self="cancel">
         <div class="modal">
-          <h3>Lån {{ selectedWsData.name }}</h3>
+          <h3>{{ selected.name }}</h3>
+          <p class="modal-sub">Skriv inn navnet ditt for å låne</p>
 
           <div class="form-group">
-            <label for="modal-name">Ditt navn</label>
+            <label for="name-input">Ditt navn</label>
             <input
-              id="modal-name"
+              id="name-input"
+              ref="nameInput"
               v-model="borrowerName"
               class="input"
-              placeholder="Skriv inn navnet ditt"
+              placeholder="Skriv her..."
               autocomplete="name"
-              ref="nameInput"
-              @keydown.enter="confirmBorrow"
+              @keydown.enter="confirm"
             />
           </div>
 
           <ul class="modal-items">
-            <li v-for="item in [selectedWsData.name, selectedWsData.keyboard, selectedWsData.mouse].filter(Boolean)" :key="item">{{ item }}</li>
+            <li v-for="item in [selected.name, selected.keyboard, selected.mouse].filter(Boolean)" :key="item">{{ item }}</li>
           </ul>
 
           <div class="modal-actions">
-            <button class="btn btn-primary btn-full" :disabled="!borrowerName.trim()" @click="confirmBorrow">
+            <button class="btn btn-primary btn-full" :disabled="!borrowerName.trim()" @click="confirm">
               Bekreft lån
             </button>
             <button class="btn btn-secondary btn-full" @click="cancel">Avbryt</button>
