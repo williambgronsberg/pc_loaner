@@ -144,7 +144,7 @@ onMounted(() => subscribeWorkstations());
 
 .ws-full {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   flex: 1;
   padding: 8px;
   gap: 8px;
