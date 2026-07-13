@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== WORKSTATIONS =====
+    // Students: can read all, can update status/borrower/borrowedAt when borrowing
+    // Admins: full access
+    match /workstations/{wsId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if
+        // Anyone can borrow (set status to borrowed with borrower info)
+        (request.resource.data.status == "borrowed" &&
+         request.resource.data.borrower is string &&
+         request.resource.data.borrowedAt == timestamp.value(request.time))
+        ||
+        // Admins can return or modify
+        request.auth != null;
+      allow delete: if request.auth != null;
+    }
+
+    // ===== BORROW RECORDS =====
+    // Students: can create records
+    // Admins: can read and update (for returning)
+    match /borrowRecords/{recordId} {
+      allow read: if request.auth != null;
+      allow create: if true;
+      allow update: if request.auth != null;
+      allow delete: if false;
+    }
+
+    // ===== ADMINS =====
+    // Only authenticated admins can read/write
+    match /admins/{adminId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+  }
+}

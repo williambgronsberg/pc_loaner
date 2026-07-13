@@ -1,0 +1,19 @@
+{
+  "name": "Røde Kors Utstyrssystem",
+  "short_name": "Røde Kors",
+  "description": "Lån og returner utstyr hos Røde Kors",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f9fafb",
+  "theme_color": "#b81c1c",
+  "categories": ["utilities", "productivity"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
