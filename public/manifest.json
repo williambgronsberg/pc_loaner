@@ -1,12 +1,12 @@
 {
-  "name": "Røde Kors Utstyrssystem",
-  "short_name": "Røde Kors",
-  "description": "Lån og returner utstyr hos Røde Kors",
-  "start_url": "/",
+  "name": "Lån utstyr",
+  "short_name": "Lån utstyr",
+  "description": "Lån og returner utstyr",
+  "start_url": "/pc_loaner/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f9fafb",
-  "theme_color": "#b81c1c",
+  "background_color": "#1a1a1a",
+  "theme_color": "#f5c518",
   "categories": ["utilities", "productivity"],
   "icons": [
     {
