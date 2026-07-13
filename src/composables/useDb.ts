@@ -18,7 +18,7 @@ import {
   type DocumentSnapshot,
 } from "firebase/firestore";
 import { db } from "@/firebase";
-import type { Workstation, BorrowRecord } from "@/types";
+import type { Workstation, BorrowRecord, WsType } from "@/types";
 
 export function useDb() {
   const workstations = ref<Workstation[]>([]);
@@ -71,7 +71,11 @@ export function useDb() {
     if (unsubBorrows) unsubBorrows();
   });
 
-  async function borrowWorkstation(wsId: string, name: string) {
+  async function borrowWorkstation(
+    wsId: string,
+    name: string,
+    controllers?: number
+  ) {
     const batch = writeBatch(db);
     const recordRef = doc(collection(db, "borrowRecords"));
     const wsRef = doc(db, "workstations", wsId);
@@ -88,6 +92,7 @@ export function useDb() {
       borrower: name,
       borrowedAt: serverTimestamp(),
       returnedAt: null,
+      controllers: controllers ?? null,
     });
 
     await batch.commit();
@@ -144,15 +149,24 @@ export function useDb() {
     const snap = await getDocs(query(collection(db, "workstations"), limit(1)));
     if (!snap.empty) return;
 
-    const defaults = [
-      { name: "PC 1", keyboard: "Keyboard 1", mouse: "Mouse 1" },
-      { name: "PC 2", keyboard: "Keyboard 2", mouse: "Mouse 2" },
-      { name: "PC 3", keyboard: "Keyboard 3", mouse: "Mouse 3" },
+    const defaults: Array<{
+      name: string;
+      type: WsType;
+      keyboard: string;
+      mouse: string;
+    }> = [
+      { name: "PlayStation", type: "playstation", keyboard: "Kontroller x2", mouse: "" },
+      { name: "PC 1", type: "pc", keyboard: "Keyboard 1", mouse: "Mouse 1" },
+      { name: "PC 2", type: "pc", keyboard: "Keyboard 2", mouse: "Mouse 2" },
+      { name: "PC 3", type: "pc", keyboard: "Keyboard 3", mouse: "Mouse 3" },
     ];
 
     for (const ws of defaults) {
       await setDoc(doc(db, "workstations", ws.name), {
-        ...ws,
+        name: ws.name,
+        type: ws.type,
+        keyboard: ws.keyboard,
+        mouse: ws.mouse,
         status: "available",
         borrower: null,
         borrowedAt: null,
@@ -163,11 +177,13 @@ export function useDb() {
 
   async function addWorkstation(
     name: string,
+    type: WsType,
     keyboard: string,
     mouse: string
   ) {
     await setDoc(doc(db, "workstations", name), {
       name,
+      type,
       keyboard: keyboard || "",
       mouse: mouse || "",
       status: "available",

@@ -12,15 +12,18 @@ const { workstations, subscribeWorkstations, borrowWorkstation } = useDb();
 const showModal = ref(false);
 const selectedWs = ref<string | null>(null);
 const borrowerName = ref("");
+const controllerCount = ref(2);
 const nameInput = ref<HTMLInputElement | null>(null);
 
-const selected = computed(() =>
-  workstations.value.find((ws) => ws.id === selectedWs.value)
-);
+const ps = computed(() => workstations.value.find((w) => w.type === "playstation"));
+const pcs = computed(() => workstations.value.filter((w) => w.type === "pc"));
+const selected = computed(() => workstations.value.find((ws) => ws.id === selectedWs.value));
+const isPs = computed(() => selected.value?.type === "playstation");
 
 function openBorrow(id: string) {
   selectedWs.value = id;
   borrowerName.value = "";
+  controllerCount.value = 2;
   showModal.value = true;
   nextTick(() => nameInput.value?.focus());
 }
@@ -36,7 +39,11 @@ async function confirm() {
   if (!name || !selectedWs.value) return;
   loading.value = true;
   try {
-    await borrowWorkstation(selectedWs.value, name);
+    await borrowWorkstation(
+      selectedWs.value,
+      name,
+      isPs.value ? controllerCount.value : undefined
+    );
     showModal.value = false;
     showToast(`Du låner ${selectedWs.value}`, "success");
     selectedWs.value = null;
@@ -60,7 +67,26 @@ onMounted(() => subscribeWorkstations());
 
     <div v-else class="ws-full">
       <div
-        v-for="ws in workstations"
+        v-if="ps"
+        class="ws-block ps-block"
+        :class="ps.status"
+        tabindex="0"
+        role="button"
+        @click="ps.status === 'available' && openBorrow(ps.id)"
+        @keydown.enter="ps.status === 'available' && openBorrow(ps.id)"
+      >
+        <div class="ws-block-inner">
+          <div class="ws-block-emoji">🎮</div>
+          <div class="ws-block-name">{{ ps.name }}</div>
+          <div v-if="ps.keyboard" class="ws-block-detail">{{ ps.keyboard }}</div>
+          <div class="ws-block-badge" :class="ps.status">
+            {{ ps.status === "available" ? "Trykk for å låne" : "Opptatt" }}
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-for="ws in pcs"
         :key="ws.id"
         class="ws-block"
         :class="ws.status"
@@ -78,9 +104,6 @@ onMounted(() => subscribeWorkstations());
           <div class="ws-block-badge" :class="ws.status">
             {{ ws.status === "available" ? "Trykk for å låne" : "Opptatt" }}
           </div>
-          <div v-if="ws.status === 'borrowed' && ws.borrower" class="ws-block-borrower">
-            Lånt av: {{ ws.borrower }}
-          </div>
         </div>
       </div>
     </div>
@@ -88,7 +111,7 @@ onMounted(() => subscribeWorkstations());
     <Teleport to="body">
       <div v-if="showModal && selected" class="modal-overlay" @click.self="cancel">
         <div class="modal">
-          <div class="modal-emoji">💻</div>
+          <div class="modal-emoji">{{ isPs ? "🎮" : "💻" }}</div>
           <h3>{{ selected.name }}</h3>
           <p class="modal-sub">Skriv navnet ditt for å låne</p>
 
@@ -103,6 +126,16 @@ onMounted(() => subscribeWorkstations());
               autocomplete="name"
               @keydown.enter="confirm"
             />
+          </div>
+
+          <div v-if="isPs" class="form-group">
+            <label for="ctrl-input">Antall kontrollere</label>
+            <div class="ctrl-select">
+              <button class="ctrl-btn" :class="{ active: controllerCount === 1 }" @click="controllerCount = 1">1</button>
+              <button class="ctrl-btn" :class="{ active: controllerCount === 2 }" @click="controllerCount = 2">2</button>
+              <button class="ctrl-btn" :class="{ active: controllerCount === 3 }" @click="controllerCount = 3">3</button>
+              <button class="ctrl-btn" :class="{ active: controllerCount === 4 }" @click="controllerCount = 4">4</button>
+            </div>
           </div>
 
           <div class="modal-actions">
@@ -181,6 +214,11 @@ onMounted(() => subscribeWorkstations());
   opacity: 0.6;
 }
 
+.ps-block.available {
+  background: #1e88e5;
+  color: white;
+}
+
 .ws-block-inner {
   display: flex;
   flex-direction: column;
@@ -189,30 +227,35 @@ onMounted(() => subscribeWorkstations());
 }
 
 .ws-block-emoji {
-  font-size: 3.5rem;
+  font-size: 3rem;
 }
 
 .ws-block-name {
-  font-size: 2rem;
+  font-size: 1.6rem;
   font-weight: 800;
 }
 
 .ws-block-detail {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   opacity: 0.7;
 }
 
 .ws-block-badge {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
   padding: 6px 20px;
   border-radius: 100px;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .ws-block-badge.available {
   background: rgba(0,0,0,0.15);
-  color: var(--black);
+  color: inherit;
+}
+
+.ps-block .ws-block-badge.available {
+  background: rgba(255,255,255,0.2);
+  color: white;
 }
 
 .ws-block-badge.borrowed {
@@ -220,15 +263,34 @@ onMounted(() => subscribeWorkstations());
   color: var(--gray-400);
 }
 
-.ws-block-borrower {
-  font-size: 0.85rem;
-  margin-top: 4px;
-  opacity: 0.7;
-}
-
 .modal-emoji {
   font-size: 3rem;
   text-align: center;
   margin-bottom: 8px;
+}
+
+.ctrl-select {
+  display: flex;
+  gap: 8px;
+}
+
+.ctrl-btn {
+  flex: 1;
+  padding: 14px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  border: 2px solid var(--black-border);
+  border-radius: var(--radius-sm);
+  background: var(--black);
+  color: var(--white);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.ctrl-btn.active {
+  border-color: var(--yellow);
+  background: var(--yellow);
+  color: var(--black);
 }
 </style>

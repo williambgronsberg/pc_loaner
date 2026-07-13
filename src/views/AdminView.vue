@@ -25,6 +25,7 @@ const activeTab = ref<TabName>("borrows");
 const historyRecords = ref<any[]>([]);
 const historyLastDoc = ref<any>(null);
 const addName = ref("");
+const addType = ref<"pc" | "playstation">("pc");
 const addKeyboard = ref("");
 const addMouse = ref("");
 
@@ -79,22 +80,22 @@ async function handleSeed() {
   }
 }
 
-async function handleAddWs() {
-  if (!addName.value.trim()) return;
-  loading.value = true;
-  try {
-    await addWorkstation(addName.value.trim(), addKeyboard.value.trim(), addMouse.value.trim());
-    showToast(`${addName.value} er lagt til`, "success");
-    addName.value = "";
-    addKeyboard.value = "";
-    addMouse.value = "";
-  } catch (err) {
-    console.error(err);
-    showToast("Kunne ikke legge til enheten", "error");
-  } finally {
-    loading.value = false;
+  async function handleAddWs() {
+    if (!addName.value.trim()) return;
+    loading.value = true;
+    try {
+      await addWorkstation(addName.value.trim(), addType.value, addKeyboard.value.trim(), addMouse.value.trim());
+      showToast(`${addName.value} er lagt til`, "success");
+      addName.value = "";
+      addKeyboard.value = "";
+      addMouse.value = "";
+    } catch (err) {
+      console.error(err);
+      showToast("Kunne ikke legge til enheten", "error");
+    } finally {
+      loading.value = false;
+    }
   }
-}
 
 async function handleRemoveWs(name: string) {
   if (!confirm(`Fjern ${name}?`)) return;
@@ -180,6 +181,7 @@ onMounted(() => {
             <div class="borrow-card-info">
               <h4>{{ rec.workstation }}</h4>
               <p>Lånt av: {{ rec.borrower }}</p>
+              <div v-if="rec.controllers" class="borrow-card-time">🎮 {{ rec.controllers }} kontrollere</div>
               <div class="borrow-card-time">{{ formatTime(rec.borrowedAt) }}</div>
             </div>
             <button
@@ -199,6 +201,7 @@ onMounted(() => {
             <div class="borrow-card-info">
               <h4>{{ rec.workstation }}</h4>
               <p>Lånt av: {{ rec.borrower }}</p>
+              <div v-if="rec.controllers" class="borrow-card-time">🎮 {{ rec.controllers }} kontrollere</div>
               <div class="borrow-card-time">
                 Lånt: {{ formatDate(rec.borrowedAt) }}
                 <span v-if="rec.returnedAt"> | Returnert: {{ formatDate(rec.returnedAt) }}</span>
@@ -222,9 +225,9 @@ onMounted(() => {
         <h2 class="section-title">Administrer enheter</h2>
 
         <div class="workstations-manage-list">
-          <div v-for="ws in workstations" :key="ws.id" class="workstation-manage-item">
+          <div v-for="ws in workstations" :key="ws.id" class="ws-manage-item">
             <div>
-              <div class="ws-name">{{ ws.name }}</div>
+              <div class="ws-name">{{ ws.type === 'playstation' ? '🎮' : '💻' }} {{ ws.name }}</div>
               <div class="ws-status">{{ ws.status === 'available' ? 'Ledig' : 'Utlånt' }}</div>
             </div>
             <button
@@ -237,20 +240,27 @@ onMounted(() => {
         </div>
 
         <button class="btn btn-secondary btn-full" style="margin-bottom:16px;" @click="handleSeed">
-          Sett inn standardenheter (PC 1-3)
+          Sett inn standardenheter (PS + PC 1-3)
         </button>
 
-        <form class="add-workstation-form card" @submit.prevent="handleAddWs">
+        <form class="add-form" @submit.prevent="handleAddWs">
           <h3>Legg til ny enhet</h3>
           <div class="form-group">
             <label for="new-name">Navn</label>
             <input id="new-name" v-model="addName" class="input" placeholder="F.eks. PC 4" required />
           </div>
           <div class="form-group">
-            <label for="new-keyboard">Tastatur</label>
-            <input id="new-keyboard" v-model="addKeyboard" class="input" placeholder="F.eks. Tastatur 4" />
+            <label>Type</label>
+            <div style="display:flex;gap:8px;">
+              <button type="button" class="btn" :class="addType === 'pc' ? 'btn-primary' : 'btn-secondary'" style="flex:1" @click="addType = 'pc'">💻 PC</button>
+              <button type="button" class="btn" :class="addType === 'playstation' ? 'btn-primary' : 'btn-secondary'" style="flex:1" @click="addType = 'playstation'">🎮 PlayStation</button>
+            </div>
           </div>
           <div class="form-group">
+            <label for="new-keyboard">{{ addType === 'playstation' ? 'Tilbehør' : 'Tastatur' }}</label>
+            <input id="new-keyboard" v-model="addKeyboard" class="input" :placeholder="addType === 'playstation' ? 'F.eks. Kontroller x2, ladestasjon' : 'F.eks. Tastatur 4'" />
+          </div>
+          <div v-if="addType === 'pc'" class="form-group">
             <label for="new-mouse">Mus</label>
             <input id="new-mouse" v-model="addMouse" class="input" placeholder="F.eks. Mus 4" />
           </div>
