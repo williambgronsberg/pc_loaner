@@ -485,6 +485,22 @@
       loadHistory(true);
     });
 
+    // Seed default workstations
+    $("seed-workstations-btn").addEventListener("click", function () {
+      if (!confirm("Sett inn standardenheter (PC 1, PC 2, PC 3)?")) return;
+      showLoading(true);
+      seedDefaultWorkstations()
+        .then(function () {
+          showLoading(false);
+          showToast("Standardenheter er lagt til", "success");
+        })
+        .catch(function (err) {
+          showLoading(false);
+          console.error(err);
+          showError("Kunne ikke sette inn enheter. Er du logget inn som admin?");
+        });
+    });
+
     // Add workstation
     $("add-workstation-form").addEventListener("submit", function (e) {
       e.preventDefault();
@@ -536,7 +552,6 @@
   function init() {
     setupEventListeners();
     setupAuth();
-    seedDefaultWorkstations();
     startStudentSubscriptions();
   }
 
