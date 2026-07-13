@@ -240,7 +240,7 @@ onMounted(() => {
         </div>
 
         <button class="btn btn-secondary btn-full" style="margin-bottom:16px;" @click="handleSeed">
-          Sett inn standardenheter (PS + PC 1-3)
+          Sett inn standardenheter (PS 1-2 + PC 1-3)
         </button>
 
         <form class="add-form" @submit.prevent="handleAddWs">

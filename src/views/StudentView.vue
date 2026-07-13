@@ -15,7 +15,7 @@ const borrowerName = ref("");
 const controllerCount = ref(2);
 const nameInput = ref<HTMLInputElement | null>(null);
 
-const ps = computed(() => workstations.value.find((w) => w.type === "playstation"));
+const psList = computed(() => workstations.value.filter((w) => w.type === "playstation"));
 const pcs = computed(() => workstations.value.filter((w) => w.type === "pc"));
 const selected = computed(() => workstations.value.find((ws) => ws.id === selectedWs.value));
 const isPs = computed(() => selected.value?.type === "playstation");
@@ -66,21 +66,24 @@ onMounted(() => subscribeWorkstations());
     <p v-if="workstations.length === 0" class="empty-state">Laster...</p>
 
     <div v-else class="ws-scroll">
-      <div
-        v-if="ps"
-        class="ws-bar ps-bar"
-        :class="ps.status"
-        tabindex="0"
-        role="button"
-        @click="ps.status === 'available' && openBorrow(ps.id)"
-        @keydown.enter="ps.status === 'available' && openBorrow(ps.id)"
-      >
-        <div class="ws-bar-inner">
-          <div class="ws-bar-emoji">🎮</div>
-          <div class="ws-bar-name">{{ ps.name }}</div>
-          <div v-if="ps.keyboard" class="ws-bar-detail">{{ ps.keyboard }}</div>
-          <div class="ws-block-badge" :class="ps.status">
-            {{ ps.status === "available" ? "Trykk for å låne" : "Opptatt" }}
+      <div v-if="psList.length" class="ps-row">
+        <div
+          v-for="ws in psList"
+          :key="ws.id"
+          class="ws-bar"
+          :class="ws.status"
+          tabindex="0"
+          role="button"
+          @click="ws.status === 'available' && openBorrow(ws.id)"
+          @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
+        >
+          <div class="ws-bar-inner">
+            <div class="ws-bar-emoji">🎮</div>
+            <div class="ws-bar-name">{{ ws.name }}</div>
+            <div v-if="ws.keyboard" class="ws-bar-detail">{{ ws.keyboard }}</div>
+            <div class="ws-block-badge" :class="ws.status">
+              {{ ws.status === "available" ? "Trykk for å låne" : "Opptatt" }}
+            </div>
           </div>
         </div>
       </div>
@@ -185,7 +188,15 @@ onMounted(() => subscribeWorkstations());
   gap: 8px;
 }
 
+.ps-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .ws-bar {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -196,7 +207,6 @@ onMounted(() => subscribeWorkstations());
   user-select: none;
   text-align: center;
   min-height: 120px;
-  flex-shrink: 0;
 }
 
 .ws-bar.available {

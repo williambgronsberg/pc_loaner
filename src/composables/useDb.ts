@@ -146,9 +146,6 @@ export function useDb() {
   }
 
   async function seedDefaultWorkstations() {
-    const snap = await getDocs(query(collection(db, "workstations"), limit(1)));
-    if (!snap.empty) return;
-
     const defaults: Array<{
       name: string;
       type: WsType;
@@ -156,13 +153,17 @@ export function useDb() {
       mouse: string;
     }> = [
       { name: "PlayStation", type: "playstation", keyboard: "Kontroller x2", mouse: "" },
+      { name: "PlayStation 2", type: "playstation", keyboard: "Kontroller x2", mouse: "" },
       { name: "PC 1", type: "pc", keyboard: "Keyboard 1", mouse: "Mouse 1" },
       { name: "PC 2", type: "pc", keyboard: "Keyboard 2", mouse: "Mouse 2" },
       { name: "PC 3", type: "pc", keyboard: "Keyboard 3", mouse: "Mouse 3" },
     ];
 
     for (const ws of defaults) {
-      await setDoc(doc(db, "workstations", ws.name), {
+      const wsRef = doc(db, "workstations", ws.name);
+      const snap = await getDoc(wsRef);
+      if (snap.exists()) continue;
+      await setDoc(wsRef, {
         name: ws.name,
         type: ws.type,
         keyboard: ws.keyboard,
