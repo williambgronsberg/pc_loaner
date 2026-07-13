@@ -65,44 +65,46 @@ onMounted(() => subscribeWorkstations());
 
     <p v-if="workstations.length === 0" class="empty-state">Laster...</p>
 
-    <div v-else class="ws-full">
+    <div v-else class="ws-scroll">
       <div
         v-if="ps"
-        class="ws-block ps-block"
+        class="ws-bar ps-bar"
         :class="ps.status"
         tabindex="0"
         role="button"
         @click="ps.status === 'available' && openBorrow(ps.id)"
         @keydown.enter="ps.status === 'available' && openBorrow(ps.id)"
       >
-        <div class="ws-block-inner">
-          <div class="ws-block-emoji">🎮</div>
-          <div class="ws-block-name">{{ ps.name }}</div>
-          <div v-if="ps.keyboard" class="ws-block-detail">{{ ps.keyboard }}</div>
+        <div class="ws-bar-inner">
+          <div class="ws-bar-emoji">🎮</div>
+          <div class="ws-bar-name">{{ ps.name }}</div>
+          <div v-if="ps.keyboard" class="ws-bar-detail">{{ ps.keyboard }}</div>
           <div class="ws-block-badge" :class="ps.status">
             {{ ps.status === "available" ? "Trykk for å låne" : "Opptatt" }}
           </div>
         </div>
       </div>
 
-      <div
-        v-for="ws in pcs"
-        :key="ws.id"
-        class="ws-block"
-        :class="ws.status"
-        tabindex="0"
-        role="button"
-        @click="ws.status === 'available' && openBorrow(ws.id)"
-        @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
-      >
-        <div class="ws-block-inner">
-          <div class="ws-block-emoji">💻</div>
-          <div class="ws-block-name">{{ ws.name }}</div>
-          <div v-if="ws.keyboard || ws.mouse" class="ws-block-detail">
-            {{ [ws.keyboard, ws.mouse].filter(Boolean).join(" · ") }}
-          </div>
-          <div class="ws-block-badge" :class="ws.status">
-            {{ ws.status === "available" ? "Trykk for å låne" : "Opptatt" }}
+      <div class="ws-row">
+        <div
+          v-for="ws in pcs"
+          :key="ws.id"
+          class="ws-block"
+          :class="ws.status"
+          tabindex="0"
+          role="button"
+          @click="ws.status === 'available' && openBorrow(ws.id)"
+          @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
+        >
+          <div class="ws-block-inner">
+            <div class="ws-block-emoji">💻</div>
+            <div class="ws-block-name">{{ ws.name }}</div>
+            <div v-if="ws.keyboard || ws.mouse" class="ws-block-detail">
+              {{ [ws.keyboard, ws.mouse].filter(Boolean).join(" · ") }}
+            </div>
+            <div class="ws-block-badge" :class="ws.status">
+              {{ ws.status === "available" ? "Trykk for å låne" : "Opptatt" }}
+            </div>
           </div>
         </div>
       </div>
@@ -175,11 +177,72 @@ onMounted(() => subscribeWorkstations());
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
-.ws-full {
+.ws-scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 8px;
+  gap: 8px;
+}
+
+.ws-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  text-align: center;
+  min-height: 120px;
+  flex-shrink: 0;
+}
+
+.ws-bar.available {
+  background: #1e88e5;
+  color: white;
+}
+
+.ws-bar.available:active {
+  opacity: 0.85;
+  transform: scale(0.98);
+}
+
+.ws-bar.borrowed {
+  background: var(--black-card);
+  border: 2px solid var(--black-border);
+  color: var(--gray-400);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.ws-bar-inner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.ws-bar-emoji {
+  font-size: 2.5rem;
+}
+
+.ws-bar-name {
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.ws-bar-detail {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+.ws-row {
   display: flex;
   flex-direction: row;
   flex: 1;
-  padding: 8px;
   gap: 8px;
 }
 
@@ -212,11 +275,6 @@ onMounted(() => subscribeWorkstations());
   color: var(--gray-400);
   cursor: not-allowed;
   opacity: 0.6;
-}
-
-.ps-block.available {
-  background: #1e88e5;
-  color: white;
 }
 
 .ws-block-inner {
@@ -253,7 +311,7 @@ onMounted(() => subscribeWorkstations());
   color: inherit;
 }
 
-.ps-block .ws-block-badge.available {
+.ws-bar .ws-block-badge.available {
   background: rgba(255,255,255,0.2);
   color: white;
 }
