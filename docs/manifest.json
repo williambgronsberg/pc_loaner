@@ -4,7 +4,7 @@
   "description": "Lån og returner utstyr",
   "start_url": "/pc_loaner/",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "landscape",
   "background_color": "#1a1a1a",
   "theme_color": "#f5c518",
   "categories": ["utilities", "productivity"],
