@@ -20,6 +20,7 @@ const {
   seedDefaultWorkstations,
   addWorkstation,
   removeWorkstation,
+  updateWorkstation,
 } = useDb();
 
 const activeTab = ref<TabName>("borrows");
@@ -113,6 +114,41 @@ async function handleRemoveWs(name: string) {
   } catch (err) {
     console.error(err);
     showToast("Kunne ikke fjerne enheten", "error");
+  } finally {
+    loading.value = false;
+  }
+}
+
+const editingWs = ref<string | null>(null);
+const editType = ref<"pc" | "playstation">("pc");
+const editKeyboard = ref("");
+const editMouse = ref("");
+
+function startEdit(ws: { id: string; type: string; keyboard: string; mouse: string }) {
+  editingWs.value = ws.id;
+  editType.value = ws.type as "pc" | "playstation";
+  editKeyboard.value = ws.keyboard || "";
+  editMouse.value = ws.mouse || "";
+}
+
+function cancelEdit() {
+  editingWs.value = null;
+}
+
+async function saveEdit() {
+  if (!editingWs.value) return;
+  loading.value = true;
+  try {
+    await updateWorkstation(editingWs.value, {
+      type: editType.value,
+      keyboard: editKeyboard.value.trim(),
+      mouse: editMouse.value.trim(),
+    });
+    showToast(`${editingWs.value} er oppdatert`, "success");
+    editingWs.value = null;
+  } catch (err) {
+    console.error(err);
+    showToast("Kunne ikke oppdatere enheten", "error");
   } finally {
     loading.value = false;
   }
@@ -224,18 +260,44 @@ onMounted(() => {
 
         <div class="card-list">
           <div v-for="ws in workstations" :key="ws.id" class="card-row manage-row">
-            <div class="card-body">
-              <div class="card-title">
-                <SfIcon :name="ws.type === 'playstation' ? 'gamecontroller' : 'desktopcomputer'" :size="16" />
-                {{ ws.name }}
+            <template v-if="editingWs === ws.id">
+              <div class="edit-inline">
+                <div class="edit-name">{{ ws.name }}</div>
+                <div class="type-picker" style="margin-bottom:8px;">
+                  <button type="button" class="type-btn" :class="{ active: editType === 'pc' }" @click="editType = 'pc'">
+                    <SfIcon name="desktopcomputer" :size="16" /> PC
+                  </button>
+                  <button type="button" class="type-btn" :class="{ active: editType === 'playstation' }" @click="editType = 'playstation'">
+                    <SfIcon name="gamecontroller" :size="16" /> PS
+                  </button>
+                </div>
+                <input v-model="editKeyboard" class="input" :placeholder="editType === 'playstation' ? 'Tilbehør' : 'Tastatur'" style="margin-bottom:6px;" />
+                <input v-if="editType === 'pc'" v-model="editMouse" class="input" placeholder="Mus" style="margin-bottom:6px;" />
+                <div class="edit-actions">
+                  <button class="btn-return" @click="saveEdit">Lagre</button>
+                  <button class="btn-remove" @click="cancelEdit">Avbryt</button>
+                </div>
               </div>
-              <div class="card-meta">{{ ws.status === 'available' ? 'Ledig' : 'Utlånt' }}</div>
-            </div>
-            <button
-              v-if="ws.status === 'available'"
-              class="btn-remove"
-              @click="handleRemoveWs(ws.name)"
-            >Fjern</button>
+            </template>
+            <template v-else>
+              <div class="card-body">
+                <div class="card-title">
+                  <SfIcon :name="ws.type === 'playstation' ? 'gamecontroller' : 'desktopcomputer'" :size="16" />
+                  {{ ws.name }}
+                </div>
+                <div class="card-meta">{{ ws.status === 'available' ? 'Ledig' : 'Utlånt' }}</div>
+              </div>
+              <button
+                v-if="ws.status === 'available'"
+                class="btn-edit"
+                @click="startEdit(ws)"
+              >Rediger</button>
+              <button
+                v-if="ws.status === 'available'"
+                class="btn-remove"
+                @click="handleRemoveWs(ws.name)"
+              >Fjern</button>
+            </template>
           </div>
           <div v-if="workstations.length === 0" class="empty-state">Ingen enheter</div>
         </div>
@@ -403,6 +465,10 @@ onMounted(() => {
   border: 1px solid #2a2a2a;
 }
 
+.manage-row {
+  flex-wrap: wrap;
+}
+
 .card-body {
   flex: 1;
   min-width: 0;
@@ -460,6 +526,45 @@ onMounted(() => {
 .btn-remove:active {
   background: #ef4444;
   color: #fff;
+}
+
+.btn-edit {
+  background: none;
+  border: 1px solid #555;
+  color: #888;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-edit:active {
+  background: #555;
+  color: #fff;
+}
+
+.edit-inline {
+  width: 100%;
+}
+
+.edit-name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.edit-actions .btn-return,
+.edit-actions .btn-remove {
+  flex: 1;
 }
 
 .btn-load {

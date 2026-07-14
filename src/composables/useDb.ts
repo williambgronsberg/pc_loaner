@@ -198,6 +198,17 @@ export function useDb() {
     await deleteDoc(doc(db, "workstations", name));
   }
 
+  async function updateWorkstation(
+    name: string,
+    data: { keyboard?: string; mouse?: string; type?: WsType }
+  ) {
+    const updateData: Record<string, any> = {};
+    if (data.keyboard !== undefined) updateData.keyboard = data.keyboard;
+    if (data.mouse !== undefined) updateData.mouse = data.mouse;
+    if (data.type !== undefined) updateData.type = data.type;
+    await updateDoc(doc(db, "workstations", name), updateData);
+  }
+
   return {
     workstations,
     activeBorrows,
@@ -210,5 +221,6 @@ export function useDb() {
     seedDefaultWorkstations,
     addWorkstation,
     removeWorkstation,
+    updateWorkstation,
   };
 }
