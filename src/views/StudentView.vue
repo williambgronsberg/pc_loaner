@@ -15,10 +15,22 @@ const borrowerName = ref("");
 const controllerCount = ref(2);
 const nameInput = ref<HTMLInputElement | null>(null);
 
+const colorMap: Record<string, string> = {
+  PlayStation: "#ED4B82",
+  "PlayStation 2": "#FDAE00",
+  "PC 1": "#2BB9A8",
+  "PC 2": "#3C8D2D",
+  "PC 3": "#EB9532",
+};
+
 const psList = computed(() => workstations.value.filter((w) => w.type === "playstation"));
 const pcs = computed(() => workstations.value.filter((w) => w.type === "pc"));
 const selected = computed(() => workstations.value.find((ws) => ws.id === selectedWs.value));
 const isPs = computed(() => selected.value?.type === "playstation");
+
+function wsColor(ws: { name: string }) {
+  return colorMap[ws.name] || "#ED4B82";
+}
 
 function openBorrow(id: string) {
   selectedWs.value = id;
@@ -70,10 +82,10 @@ onMounted(() => subscribeWorkstations());
         <div
           v-for="ws in psList"
           :key="ws.id"
-          class="ws-bar"
-          :class="ws.status"
+          class="ws-bar available"
           tabindex="0"
           role="button"
+          :style="{ background: ws.status === 'available' ? wsColor(ws) : undefined }"
           @click="ws.status === 'available' && openBorrow(ws.id)"
           @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
         >
@@ -81,7 +93,7 @@ onMounted(() => subscribeWorkstations());
             <div class="ws-bar-emoji">🎮</div>
             <div class="ws-bar-name">{{ ws.name }}</div>
             <div v-if="ws.keyboard" class="ws-bar-detail">{{ ws.keyboard }}</div>
-            <div class="ws-block-badge" :class="ws.status">
+            <div class="ws-block-badge" :style="{ background: 'rgba(0,0,0,0.15)', color: 'inherit' }">
               {{ ws.status === "available" ? "Trykk for å låne" : "Opptatt" }}
             </div>
           </div>
@@ -92,10 +104,10 @@ onMounted(() => subscribeWorkstations());
         <div
           v-for="ws in pcs"
           :key="ws.id"
-          class="ws-block"
-          :class="ws.status"
+          class="ws-block available"
           tabindex="0"
           role="button"
+          :style="{ background: ws.status === 'available' ? wsColor(ws) : undefined }"
           @click="ws.status === 'available' && openBorrow(ws.id)"
           @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
         >
@@ -105,7 +117,7 @@ onMounted(() => subscribeWorkstations());
             <div v-if="ws.keyboard || ws.mouse" class="ws-block-detail">
               {{ [ws.keyboard, ws.mouse].filter(Boolean).join(" · ") }}
             </div>
-            <div class="ws-block-badge" :class="ws.status">
+            <div class="ws-block-badge" :style="{ background: 'rgba(0,0,0,0.15)', color: 'inherit' }">
               {{ ws.status === "available" ? "Trykk for å låne" : "Opptatt" }}
             </div>
           </div>
@@ -207,22 +219,13 @@ onMounted(() => subscribeWorkstations());
   user-select: none;
   text-align: center;
   min-height: 120px;
-}
-
-.ws-bar.available {
-  background: #1e88e5;
-  color: white;
-}
-
-.ws-bar.available:active {
-  opacity: 0.85;
-  transform: scale(0.98);
+  color: #000;
 }
 
 .ws-bar.borrowed {
-  background: var(--black-card);
+  background: var(--black-card) !important;
   border: 2px solid var(--black-border);
-  color: var(--gray-400);
+  color: var(--gray-400) !important;
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -267,22 +270,18 @@ onMounted(() => subscribeWorkstations());
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   text-align: center;
+  color: #000;
 }
 
-.ws-block.available {
-  background: var(--yellow);
-  color: var(--black);
-}
-
-.ws-block.available:active {
+.ws-block:active {
   opacity: 0.85;
   transform: scale(0.98);
 }
 
 .ws-block.borrowed {
-  background: var(--black-card);
+  background: var(--black-card) !important;
   border: 2px solid var(--black-border);
-  color: var(--gray-400);
+  color: var(--gray-400) !important;
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -314,16 +313,6 @@ onMounted(() => subscribeWorkstations());
   padding: 6px 20px;
   border-radius: 100px;
   margin-top: 6px;
-}
-
-.ws-block-badge.available {
-  background: rgba(0,0,0,0.15);
-  color: inherit;
-}
-
-.ws-bar .ws-block-badge.available {
-  background: rgba(255,255,255,0.2);
-  color: white;
 }
 
 .ws-block-badge.borrowed {
