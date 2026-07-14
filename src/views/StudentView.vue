@@ -198,7 +198,7 @@ onMounted(() => subscribeWorkstations());
                 v-model="loginEmail"
                 class="input"
                 type="email"
-                placeholder="admin@example.com"
+                placeholder="admin@eksempel.no"
                 autocomplete="email"
                 required
               />

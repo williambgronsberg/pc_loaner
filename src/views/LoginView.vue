@@ -53,7 +53,7 @@ async function handleLogin() {
               v-model="email"
               class="input"
               type="email"
-              placeholder="admin@example.com"
+              placeholder="admin@eksempel.no"
               autocomplete="email"
               required
             />
