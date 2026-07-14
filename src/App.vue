@@ -32,6 +32,8 @@ provide("loading", loading);
 </script>
 
 <template>
+  <div class="rotate-blocker">Vennligst roter iPad-en til liggende retning</div>
+
   <div id="toast-container">
     <div
       v-for="t in toasts"
@@ -51,4 +53,25 @@ provide("loading", loading);
   <AdminView v-else-if="currentView === 'admin'" />
 </template>
 
-<style></style>
+<style>
+.rotate-blocker {
+  display: none;
+}
+
+@media (orientation: portrait) {
+  .rotate-blocker {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: #000;
+    color: #f5c518;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+    padding: 20px;
+  }
+}
+</style>
