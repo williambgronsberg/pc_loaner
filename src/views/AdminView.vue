@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, inject, onMounted, onUnmounted } from "vue";
+import { ref, computed, inject, onMounted } from "vue";
 import type { ViewName, TabName, ToastType } from "@/types";
 import { useAuth } from "@/composables/useAuth";
 import { useDb } from "@/composables/useDb";
@@ -24,9 +24,9 @@ const {
 
 const activeTab = ref<TabName>("borrows");
 const tabs = [
-  { key: "borrows", label: "Utlån", icon: "📋" },
-  { key: "history", label: "Historikk", icon: "🕐" },
-  { key: "manage", label: "Enheter", icon: "⚙️" },
+  { key: "borrows", label: "Utlån", icon: "list" },
+  { key: "history", label: "Historikk", icon: "clock" },
+  { key: "manage", label: "Enheter", icon: "gear" },
 ] as const;
 const userEmail = computed(() => currentUser.value?.email ?? "");
 const historyRecords = ref<any[]>([]);
@@ -74,7 +74,7 @@ async function loadHistory(append = false) {
 }
 
 async function handleSeed() {
-  if (!confirm("Sett inn standardenheter (PC 1, PC 2, PC 3)?")) return;
+  if (!confirm("Sett inn standardenheter?")) return;
   loading.value = true;
   try {
     await seedDefaultWorkstations();
@@ -87,22 +87,22 @@ async function handleSeed() {
   }
 }
 
-  async function handleAddWs() {
-    if (!addName.value.trim()) return;
-    loading.value = true;
-    try {
-      await addWorkstation(addName.value.trim(), addType.value, addKeyboard.value.trim(), addMouse.value.trim());
-      showToast(`${addName.value} er lagt til`, "success");
-      addName.value = "";
-      addKeyboard.value = "";
-      addMouse.value = "";
-    } catch (err) {
-      console.error(err);
-      showToast("Kunne ikke legge til enheten", "error");
-    } finally {
-      loading.value = false;
-    }
+async function handleAddWs() {
+  if (!addName.value.trim()) return;
+  loading.value = true;
+  try {
+    await addWorkstation(addName.value.trim(), addType.value, addKeyboard.value.trim(), addMouse.value.trim());
+    showToast(`${addName.value} er lagt til`, "success");
+    addName.value = "";
+    addKeyboard.value = "";
+    addMouse.value = "";
+  } catch (err) {
+    console.error(err);
+    showToast("Kunne ikke legge til enheten", "error");
+  } finally {
+    loading.value = false;
   }
+}
 
 async function handleRemoveWs(name: string) {
   if (!confirm(`Fjern ${name}?`)) return;
@@ -147,12 +147,10 @@ onMounted(() => {
 
 <template>
   <div class="admin-split">
-    <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-top">
         <div class="sidebar-title">Admin</div>
-        <button class="sidebar-close" @click="handleLogout">
-          <span class="sidebar-close-icon">←</span>
+        <button class="sidebar-logout" @click="handleLogout">
           Logg ut
         </button>
       </div>
@@ -164,99 +162,104 @@ onMounted(() => {
           :class="{ active: activeTab === tab.key }"
           @click="switchTab(tab.key)"
         >
-          <span class="sidebar-item-icon">{{ tab.icon }}</span>
-          <span class="sidebar-item-label">{{ tab.label }}</span>
+          <SfIcon :name="tab.icon" :size="20" />
+          <span>{{ tab.label }}</span>
         </button>
       </nav>
       <div class="sidebar-footer">
-        <div class="sidebar-footer-text">{{ userEmail }}</div>
+        <div class="sidebar-email">{{ userEmail }}</div>
       </div>
     </aside>
 
-    <!-- Content area -->
     <main class="admin-content">
-      <!-- === ACTIVE BORROWS === -->
+      <!-- Utlån -->
       <section v-show="activeTab === 'borrows'">
-        <h2 class="section-title">Utlånt utstyr</h2>
-        <div v-if="activeBorrows.length === 0" class="empty-state">Ingen utlånt utstyr</div>
-        <div v-else class="borrows-list">
-          <div v-for="rec in activeBorrows" :key="rec.id" class="borrow-card">
-            <div class="borrow-card-info">
-              <h4>{{ rec.workstation }}</h4>
-              <p>Lånt av: {{ rec.borrower }}</p>
-              <div v-if="rec.controllers" class="borrow-card-time">🎮 {{ rec.controllers }} kontrollere</div>
-              <div class="borrow-card-time">{{ formatTime(rec.borrowedAt) }}</div>
+        <h2 class="section-title">Utlån</h2>
+        <div v-if="activeBorrows.length === 0" class="empty-state">Ingen utlån</div>
+        <div v-else class="card-list">
+          <div v-for="rec in activeBorrows" :key="rec.id" class="card-row">
+            <div class="card-body">
+              <div class="card-title">{{ rec.workstation }}</div>
+              <div class="card-meta">{{ rec.borrower }}</div>
+              <div class="card-meta">
+                <template v-if="rec.controllers"><SfIcon name="gamecontroller" :size="12" /> {{ rec.controllers }} kontrollere · </template>
+                {{ formatTime(rec.borrowedAt) }}
+              </div>
             </div>
-            <button
-              class="btn btn-danger btn-sm"
-              @click="handleReturn(rec.workstation)"
-            >Returner</button>
+            <button class="btn-return" @click="handleReturn(rec.workstation)">Returner</button>
           </div>
         </div>
       </section>
 
-      <!-- === HISTORY === -->
+      <!-- Historikk -->
       <section v-show="activeTab === 'history'">
         <h2 class="section-title">Historikk</h2>
         <div v-if="historyRecords.length === 0" class="empty-state">Ingen historikk</div>
-        <div v-else class="borrows-list">
-          <div v-for="rec in historyRecords" :key="rec.id" class="borrow-card">
-            <div class="borrow-card-info">
-              <h4>{{ rec.workstation }}</h4>
-              <p>Lånt av: {{ rec.borrower }}</p>
-              <div v-if="rec.controllers" class="borrow-card-time">🎮 {{ rec.controllers }} kontrollere</div>
-              <div class="borrow-card-time">
-                Lånt: {{ formatDate(rec.borrowedAt) }}
-                <span v-if="rec.returnedAt"> | Returnert: {{ formatDate(rec.returnedAt) }}</span>
+        <div v-else class="card-list">
+          <div v-for="rec in historyRecords" :key="rec.id" class="card-row history-row">
+            <div class="card-body">
+              <div class="card-title">{{ rec.workstation }}</div>
+              <div class="card-meta">{{ rec.borrower }}</div>
+              <div class="card-meta">
+                <template v-if="rec.controllers"><SfIcon name="gamecontroller" :size="12" /> {{ rec.controllers }} kontrollere · </template>
+                Lånt {{ formatDate(rec.borrowedAt) }}
+                <span v-if="rec.returnedAt"> | retur {{ formatDate(rec.returnedAt) }}</span>
               </div>
             </div>
-            <span
-              style="font-size:0.8125rem;font-weight:600;"
-              :style="{ color: rec.returnedAt ? 'var(--accent-success)' : 'var(--accent-error)' }"
-            >{{ rec.returnedAt ? "Returnert" : "Aktiv" }}</span>
+            <span class="card-status" :class="rec.returnedAt ? 'returned' : 'active'">
+              {{ rec.returnedAt ? "Returnert" : "Aktiv" }}
+            </span>
           </div>
           <button
             v-if="historyRecords.length >= 20"
-            class="btn btn-secondary btn-full"
+            class="btn-load"
             @click="loadHistory(true)"
           >Last flere</button>
         </div>
       </section>
 
-      <!-- === MANAGE === -->
+      <!-- Enheter -->
       <section v-show="activeTab === 'manage'">
-        <h2 class="section-title">Administrer enheter</h2>
+        <h2 class="section-title">Enheter</h2>
 
-        <div class="workstations-manage-list">
-          <div v-for="ws in workstations" :key="ws.id" class="ws-manage-item">
-            <div>
-              <div class="ws-name"><SfIcon :name="ws.type === 'playstation' ? 'gamecontroller' : 'desktopcomputer'" :size="16" /> {{ ws.name }}</div>
-              <div class="ws-status">{{ ws.status === 'available' ? 'Ledig' : 'Utlånt' }}</div>
+        <div class="card-list">
+          <div v-for="ws in workstations" :key="ws.id" class="card-row manage-row">
+            <div class="card-body">
+              <div class="card-title">
+                <SfIcon :name="ws.type === 'playstation' ? 'gamecontroller' : 'desktopcomputer'" :size="16" />
+                {{ ws.name }}
+              </div>
+              <div class="card-meta">{{ ws.status === 'available' ? 'Ledig' : 'Utlånt' }}</div>
             </div>
             <button
               v-if="ws.status === 'available'"
-              class="btn-text"
+              class="btn-remove"
               @click="handleRemoveWs(ws.name)"
             >Fjern</button>
           </div>
           <div v-if="workstations.length === 0" class="empty-state">Ingen enheter</div>
         </div>
 
-        <button class="btn btn-secondary btn-full" style="margin-bottom:16px;" @click="handleSeed">
-          Sett inn standardenheter (PS 1-2 + PC 1-3)
+        <button class="btn-seed" @click="handleSeed">
+          <SfIcon name="tray.and.arrow.down" :size="16" />
+          Sett inn standardenheter
         </button>
 
         <form class="add-form" @submit.prevent="handleAddWs">
-          <h3>Legg til ny enhet</h3>
+          <h3>Ny enhet</h3>
           <div class="form-group">
             <label for="new-name">Navn</label>
             <input id="new-name" v-model="addName" class="input" placeholder="F.eks. PC 4" required />
           </div>
           <div class="form-group">
             <label>Type</label>
-            <div style="display:flex;gap:8px;">
-              <button type="button" class="btn" :class="addType === 'pc' ? 'btn-primary' : 'btn-secondary'" style="flex:1;gap:6px;" @click="addType = 'pc'"><SfIcon name="desktopcomputer" :size="16" /> PC</button>
-              <button type="button" class="btn" :class="addType === 'playstation' ? 'btn-primary' : 'btn-secondary'" style="flex:1;gap:6px;" @click="addType = 'playstation'"><SfIcon name="gamecontroller" :size="16" /> PlayStation</button>
+            <div class="type-picker">
+              <button type="button" class="type-btn" :class="{ active: addType === 'pc' }" @click="addType = 'pc'">
+                <SfIcon name="desktopcomputer" :size="18" /> PC
+              </button>
+              <button type="button" class="type-btn" :class="{ active: addType === 'playstation' }" @click="addType = 'playstation'">
+                <SfIcon name="gamecontroller" :size="18" /> PlayStation
+              </button>
             </div>
           </div>
           <div class="form-group">
@@ -267,7 +270,7 @@ onMounted(() => {
             <label for="new-mouse">Mus</label>
             <input id="new-mouse" v-model="addMouse" class="input" placeholder="F.eks. Mus 4" />
           </div>
-          <button type="submit" class="btn btn-primary">Legg til</button>
+          <button type="submit" class="btn-submit">Legg til</button>
         </form>
       </section>
     </main>
@@ -279,43 +282,46 @@ onMounted(() => {
   display: flex;
   height: 100dvh;
   width: 100%;
-  background: var(--bg, #F2F2F7);
+  background: #000;
+  color: #fff;
 }
 
+/* ===== Sidebar ===== */
 .sidebar {
-  width: 240px;
-  background: var(--card, #FFFFFF);
-  border-right: 1px solid var(--separator, #C6C6C8);
+  width: 220px;
+  background: #111;
+  border-right: 1px solid #222;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  padding: 20px 0;
 }
 
 .sidebar-top {
-  padding: 0 20px 20px;
-  border-bottom: 1px solid var(--separator, #C6C6C8);
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid #222;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .sidebar-title {
-  font-size: 1.375rem;
-  font-weight: 700;
-  color: var(--text-primary, #1C1C1E);
+  font-size: 1.25rem;
+  font-weight: 800;
 }
 
-.sidebar-close {
+.sidebar-logout {
   background: none;
   border: none;
-  color: var(--accent-ps, #0A84FF);
-  font-size: 0.875rem;
+  color: #f5c518;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.sidebar-logout:active {
+  background: #222;
 }
 
 .sidebar-nav {
@@ -329,53 +335,272 @@ onMounted(() => {
 .sidebar-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 10px;
+  padding: 10px 12px;
   border: none;
   background: transparent;
-  color: var(--text-secondary, #3A3A3C);
-  font-size: 1rem;
+  color: #888;
+  font-size: 0.9375rem;
   font-weight: 600;
   border-radius: 10px;
   cursor: pointer;
-  transition: all var(--duration-fast) var(--curve-standard);
+  transition: all 0.15s;
   text-align: left;
   width: 100%;
 }
 
-.sidebar-item:hover {
-  background: var(--fill, #E5E5EA);
+.sidebar-item:active {
+  background: #222;
 }
 
 .sidebar-item.active {
-  background: var(--accent-ps, #0A84FF);
-  color: var(--button-text, #FFFFFF);
-}
-
-.sidebar-item-icon {
-  font-size: 1.25rem;
-  width: 28px;
-  text-align: center;
-  flex-shrink: 0;
+  background: #f5c518;
+  color: #111;
 }
 
 .sidebar-footer {
-  padding: 16px 20px;
-  border-top: 1px solid var(--separator, #C6C6C8);
+  padding: 12px 16px;
+  border-top: 1px solid #222;
 }
 
-.sidebar-footer-text {
-  font-size: 0.8125rem;
-  color: var(--text-tertiary, #8E8E93);
+.sidebar-email {
+  font-size: 0.75rem;
+  color: #555;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* ===== Content ===== */
 .admin-content {
   flex: 1;
-  padding: 24px;
+  padding: 20px;
   overflow-y: auto;
-  max-width: 800px;
+}
+
+.section-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: #fff;
+}
+
+/* ===== Cards ===== */
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.card-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #1a1a1a;
+  border-radius: 14px;
+  border: 1px solid #2a2a2a;
+}
+
+.card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-meta {
+  font-size: 0.8125rem;
+  color: #666;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ===== Buttons ===== */
+.btn-return {
+  background: none;
+  border: 1px solid #f5c518;
+  color: #f5c518;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.1s;
+}
+
+.btn-return:active {
+  background: #f5c518;
+  color: #111;
+}
+
+.btn-remove {
+  background: none;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-remove:active {
+  background: #ef4444;
+  color: #fff;
+}
+
+.btn-load {
+  width: 100%;
+  padding: 12px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  color: #888;
+  border-radius: 14px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-load:active {
+  background: #222;
+}
+
+/* ===== Status badge ===== */
+.card-status {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+.card-status.returned {
+  background: #22c55e;
+  color: #fff;
+}
+
+.card-status.active {
+  background: #f5c518;
+  color: #111;
+}
+
+/* ===== Seed button ===== */
+.btn-seed {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  color: #888;
+  border-radius: 14px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 14px;
+}
+
+.btn-seed:active {
+  background: #222;
+}
+
+/* ===== Add form ===== */
+.add-form {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.add-form h3 {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: #fff;
+}
+
+.type-picker {
+  display: flex;
+  gap: 8px;
+}
+
+.type-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  background: #111;
+  color: #888;
+  cursor: pointer;
+}
+
+.type-btn.active {
+  border-color: #f5c518;
+  background: #f5c518;
+  color: #111;
+}
+
+.btn-submit {
+  width: 100%;
+  padding: 14px;
+  background: #f5c518;
+  color: #111;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-submit:active {
+  opacity: 0.85;
+}
+
+/* ===== Empty state ===== */
+.empty-state {
+  text-align: center;
+  color: #555;
+  padding: 32px 16px;
+  font-size: 0.875rem;
+}
+
+/* ===== Override global input for dark admin ===== */
+:deep(.input) {
+  background: #111 !important;
+  border-color: #2a2a2a !important;
+  color: #fff !important;
+}
+
+:deep(.input:focus) {
+  border-color: #f5c518 !important;
+}
+
+:deep(.input::placeholder) {
+  color: #555 !important;
+}
+
+:deep(.form-group label) {
+  color: #888 !important;
 }
 </style>
