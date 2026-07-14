@@ -151,12 +151,13 @@ export function useDb() {
       type: WsType;
       keyboard: string;
       mouse: string;
+      accessories: string;
     }> = [
-      { name: "PlayStation", type: "playstation", keyboard: "Kontroller x2", mouse: "" },
-      { name: "PlayStation 2", type: "playstation", keyboard: "Kontroller x2", mouse: "" },
-      { name: "PC 1", type: "pc", keyboard: "Keyboard 1", mouse: "Mouse 1" },
-      { name: "PC 2", type: "pc", keyboard: "Keyboard 2", mouse: "Mouse 2" },
-      { name: "PC 3", type: "pc", keyboard: "Keyboard 3", mouse: "Mouse 3" },
+      { name: "PlayStation", type: "playstation", keyboard: "Kontroller x2", mouse: "", accessories: "" },
+      { name: "PlayStation 2", type: "playstation", keyboard: "Kontroller x2", mouse: "", accessories: "" },
+      { name: "PC 1", type: "pc", keyboard: "Keyboard 1", mouse: "Mouse 1", accessories: "Headset" },
+      { name: "PC 2", type: "pc", keyboard: "Keyboard 2", mouse: "Mouse 2", accessories: "" },
+      { name: "PC 3", type: "pc", keyboard: "Keyboard 3", mouse: "Mouse 3", accessories: "" },
     ];
 
     for (const ws of defaults) {
@@ -168,6 +169,7 @@ export function useDb() {
         type: ws.type,
         keyboard: ws.keyboard,
         mouse: ws.mouse,
+        accessories: ws.accessories,
         status: "available",
         borrower: null,
         borrowedAt: null,
@@ -180,13 +182,15 @@ export function useDb() {
     name: string,
     type: WsType,
     keyboard: string,
-    mouse: string
+    mouse: string,
+    accessories: string
   ) {
     await setDoc(doc(db, "workstations", name), {
       name,
       type,
       keyboard: keyboard || "",
       mouse: mouse || "",
+      accessories: accessories || "",
       status: "available",
       borrower: null,
       borrowedAt: null,
@@ -200,7 +204,7 @@ export function useDb() {
 
   async function updateWorkstation(
     oldName: string,
-    data: { newName?: string; keyboard?: string; mouse?: string; type?: WsType }
+    data: { newName?: string; keyboard?: string; mouse?: string; accessories?: string; type?: WsType }
   ) {
     const newName = data.newName?.trim();
     if (newName && newName !== oldName) {
@@ -212,6 +216,7 @@ export function useDb() {
         name: newName,
         keyboard: data.keyboard ?? oldData.keyboard,
         mouse: data.mouse ?? oldData.mouse,
+        accessories: data.accessories ?? oldData.accessories,
         type: data.type ?? oldData.type,
       });
       await deleteDoc(doc(db, "workstations", oldName));
@@ -219,6 +224,7 @@ export function useDb() {
       const updateData: Record<string, any> = {};
       if (data.keyboard !== undefined) updateData.keyboard = data.keyboard;
       if (data.mouse !== undefined) updateData.mouse = data.mouse;
+      if (data.accessories !== undefined) updateData.accessories = data.accessories;
       if (data.type !== undefined) updateData.type = data.type;
       await updateDoc(doc(db, "workstations", oldName), updateData);
     }

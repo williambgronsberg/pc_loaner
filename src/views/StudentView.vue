@@ -133,8 +133,8 @@ onMounted(() => subscribeWorkstations());
         >
           <div class="ws-block-inner">
             <div class="ws-block-name">{{ ws.name }}</div>
-            <div v-if="ws.keyboard || ws.mouse" class="ws-block-detail">
-              {{ [ws.keyboard, ws.mouse].filter(Boolean).join(" · ") }}
+            <div v-if="ws.keyboard || ws.mouse || ws.accessories" class="ws-block-detail">
+              {{ [ws.keyboard, ws.mouse, ws.accessories].filter(Boolean).join(" · ") }}
             </div>
             <div class="ws-block-badge" :class="ws.status">
               {{ ws.status === "available" ? "Trykk for å låne" : "Opptatt" }}

@@ -8,6 +8,7 @@ export interface Workstation {
   type: WsType;
   keyboard: string;
   mouse: string;
+  accessories: string;
   status: "available" | "borrowed";
   borrower: string | null;
   borrowedAt: Timestamp | null;

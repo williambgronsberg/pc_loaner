@@ -36,6 +36,7 @@ const addName = ref("");
 const addType = ref<"pc" | "playstation">("pc");
 const addKeyboard = ref("");
 const addMouse = ref("");
+const addAccessories = ref("");
 
 async function handleLogout() {
   await logout();
@@ -92,11 +93,12 @@ async function handleAddWs() {
   if (!addName.value.trim()) return;
   loading.value = true;
   try {
-    await addWorkstation(addName.value.trim(), addType.value, addKeyboard.value.trim(), addMouse.value.trim());
-    showToast(`${addName.value} er lagt til`, "success");
-    addName.value = "";
-    addKeyboard.value = "";
-    addMouse.value = "";
+    await addWorkstation(addName.value.trim(), addType.value, addKeyboard.value.trim(), addMouse.value.trim(), addAccessories.value.trim());
+      showToast(`${addName.value} er lagt til`, "success");
+      addName.value = "";
+      addKeyboard.value = "";
+      addMouse.value = "";
+      addAccessories.value = "";
   } catch (err) {
     console.error(err);
     showToast("Kunne ikke legge til enheten", "error");
@@ -124,13 +126,15 @@ const editName = ref("");
 const editType = ref<"pc" | "playstation">("pc");
 const editKeyboard = ref("");
 const editMouse = ref("");
+const editAccessories = ref("");
 
-function startEdit(ws: { id: string; name: string; type: string; keyboard: string; mouse: string }) {
+function startEdit(ws: { id: string; name: string; type: string; keyboard: string; mouse: string; accessories: string }) {
   editingWs.value = ws.id;
   editName.value = ws.name;
   editType.value = ws.type as "pc" | "playstation";
   editKeyboard.value = ws.keyboard || "";
   editMouse.value = ws.mouse || "";
+  editAccessories.value = ws.accessories || "";
 }
 
 function cancelEdit() {
@@ -146,6 +150,7 @@ async function saveEdit() {
       type: editType.value,
       keyboard: editKeyboard.value.trim(),
       mouse: editMouse.value.trim(),
+      accessories: editAccessories.value.trim(),
     });
     showToast(`${editingWs.value} er oppdatert`, "success");
     editingWs.value = null;
@@ -279,6 +284,7 @@ onMounted(() => {
                 </div>
                 <input v-model="editKeyboard" class="input" :placeholder="editType === 'playstation' ? 'Tilbehør' : 'Tastatur'" style="margin-bottom:6px;" />
                 <input v-if="editType === 'pc'" v-model="editMouse" class="input" placeholder="Mus" style="margin-bottom:6px;" />
+                <input v-if="editType === 'pc'" v-model="editAccessories" class="input" placeholder="Annet tilbehør" style="margin-bottom:6px;" />
                 <div class="edit-actions">
                   <button class="btn-return" @click="saveEdit">Lagre</button>
                   <button class="btn-remove" @click="cancelEdit">Avbryt</button>
@@ -337,6 +343,10 @@ onMounted(() => {
           <div v-if="addType === 'pc'" class="form-group">
             <label for="new-mouse">Mus</label>
             <input id="new-mouse" v-model="addMouse" class="input" placeholder="F.eks. Mus 4" />
+          </div>
+          <div v-if="addType === 'pc'" class="form-group">
+            <label for="new-accessories">Annet tilbehør</label>
+            <input id="new-accessories" v-model="addAccessories" class="input" placeholder="F.eks. Headset" />
           </div>
           <button type="submit" class="btn-submit">Legg til</button>
         </form>
