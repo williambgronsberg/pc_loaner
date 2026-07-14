@@ -78,7 +78,6 @@ onMounted(() => subscribeWorkstations());
           @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
         >
           <div class="ws-bar-inner">
-            <div class="ws-bar-emoji">🎮</div>
             <div class="ws-bar-name">{{ ws.name }}</div>
             <div v-if="ws.keyboard" class="ws-bar-detail">{{ ws.keyboard }}</div>
             <div class="ws-block-badge" :class="ws.status">
@@ -100,7 +99,6 @@ onMounted(() => subscribeWorkstations());
           @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
         >
           <div class="ws-block-inner">
-            <div class="ws-block-emoji">💻</div>
             <div class="ws-block-name">{{ ws.name }}</div>
             <div v-if="ws.keyboard || ws.mouse" class="ws-block-detail">
               {{ [ws.keyboard, ws.mouse].filter(Boolean).join(" · ") }}
@@ -116,7 +114,6 @@ onMounted(() => subscribeWorkstations());
     <Teleport to="body">
       <div v-if="showModal && selected" class="modal-overlay" @click.self="cancel">
         <div class="modal">
-          <div class="modal-emoji">{{ isPs ? "🎮" : "💻" }}</div>
           <h3>{{ selected.name }}</h3>
           <p class="modal-sub">Skriv navnet ditt for å låne</p>
 
@@ -233,22 +230,22 @@ onMounted(() => subscribeWorkstations());
   display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 24px;
   gap: 12px;
 }
 
-.ws-bar-emoji {
-  font-size: 2.5rem;
-}
-
 .ws-bar-name {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .ws-bar-detail {
   font-size: 0.85rem;
   opacity: 0.7;
-  margin-left: 4px;
+  flex-shrink: 0;
 }
 
 .ws-row {
@@ -293,21 +290,21 @@ onMounted(() => subscribeWorkstations());
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-}
-
-.ws-block-emoji {
-  font-size: 3rem;
+  padding: 0 8px;
 }
 
 .ws-block-name {
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   font-weight: 800;
+  line-height: 1.1;
 }
 
 .ws-block-detail {
-  font-size: 0.85rem;
-  opacity: 0.7;
+  font-size: 0.8rem;
+  opacity: 0.65;
+  margin-top: 2px;
 }
 
 .ws-block-badge {
@@ -331,12 +328,6 @@ onMounted(() => subscribeWorkstations());
 .ws-block-badge.borrowed {
   background: #404040;
   color: #a3a3a3;
-}
-
-.modal-emoji {
-  font-size: 3rem;
-  text-align: center;
-  margin-bottom: 8px;
 }
 
 .ctrl-select {
