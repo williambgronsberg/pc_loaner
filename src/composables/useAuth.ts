@@ -3,6 +3,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   type User,
 } from "firebase/auth";
 import { auth } from "@/firebase";
@@ -37,5 +38,5 @@ export function useAuth() {
     return currentUser.value !== null;
   }
 
-  return { currentUser, login, logout, isAdmin };
+  return { currentUser, login, logout, isAdmin, sendPasswordReset: (email: string) => sendPasswordResetEmail(auth, email) };
 }

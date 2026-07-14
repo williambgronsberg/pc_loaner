@@ -9,7 +9,11 @@ const showToast = inject<(msg: string, type?: ToastType) => void>("showToast")!;
 const loading = inject<ReturnType<typeof ref<boolean>>>("loading")!;
 
 const { workstations, subscribeWorkstations, borrowWorkstation } = useDb();
-const { login } = useAuth();
+const { login, sendPasswordReset } = useAuth();
+
+const showReset = ref(false);
+const resetEmail = ref("");
+const resetSent = ref(false);
 
 const showModal = ref(false);
 const selectedWs = ref<string | null>(null);
@@ -40,6 +44,21 @@ async function handleLogin() {
     else if (code === "auth/too-many-requests")
       loginError.value = "For mange forsøk. Prøv igjen senere.";
     else loginError.value = "Feil e-post eller passord";
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function handleReset() {
+  if (!resetEmail.value.trim()) return;
+  loading.value = true;
+  try {
+    await sendPasswordReset(resetEmail.value.trim());
+    resetSent.value = true;
+    showToast("Tilbakestillingslenke sendt til e-posten din", "success");
+  } catch (err: any) {
+    if (err.code === "auth/user-not-found") showToast("Ingen bruker med denne e-posten", "error");
+    else showToast("Kunne ikke sende tilbakestillingslenke", "error");
   } finally {
     loading.value = false;
   }
@@ -186,41 +205,65 @@ onMounted(() => subscribeWorkstations());
     <Teleport to="body">
       <div v-if="showLogin" class="modal-overlay" @click.self="showLogin = false">
         <div class="modal">
-          <h3>Admin</h3>
-          <p class="modal-sub">Logg inn for å administrere</p>
+          <template v-if="!showReset">
+            <h3>Admin</h3>
+            <p class="modal-sub">Logg inn for å administrere</p>
 
-          <form @submit.prevent="handleLogin">
-            <div class="form-group">
-              <label for="login-email">E-post</label>
-              <input
-                id="login-email"
-                ref="emailInput"
-                v-model="loginEmail"
-                class="input"
-                type="email"
-                placeholder="admin@eksempel.no"
-                autocomplete="email"
-                required
-              />
-            </div>
-            <div class="form-group">
-              <label for="login-password">Passord</label>
-              <input
-                id="login-password"
-                v-model="loginPassword"
-                class="input"
-                type="password"
-                placeholder="Passord"
-                autocomplete="current-password"
-                required
-              />
-            </div>
-            <div class="modal-actions">
-              <button type="submit" class="btn btn-primary btn-full">Logg inn</button>
-              <button type="button" class="btn btn-secondary btn-full" @click="showLogin = false">Avbryt</button>
-            </div>
-            <p v-if="loginError" class="error-message">{{ loginError }}</p>
-          </form>
+            <form @submit.prevent="handleLogin">
+              <div class="form-group">
+                <label for="login-email">E-post</label>
+                <input
+                  id="login-email"
+                  ref="emailInput"
+                  v-model="loginEmail"
+                  class="input"
+                  type="email"
+                  placeholder="admin@eksempel.no"
+                  autocomplete="email"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label for="login-password">Passord</label>
+                <input
+                  id="login-password"
+                  v-model="loginPassword"
+                  class="input"
+                  type="password"
+                  placeholder="Passord"
+                  autocomplete="current-password"
+                  required
+                />
+              </div>
+              <div class="modal-actions">
+                <button type="submit" class="btn btn-primary btn-full">Logg inn</button>
+                <button type="button" class="btn btn-secondary btn-full" @click="showLogin = false">Avbryt</button>
+              </div>
+              <p v-if="loginError" class="error-message">{{ loginError }}</p>
+              <button type="button" class="btn-text" @click="showReset = true; resetSent = false">Glemt passord?</button>
+            </form>
+          </template>
+          <template v-else>
+            <h3>Tilbakestill passord</h3>
+            <p class="modal-sub">Skriv e-posten din for å få en tilbakestillingslenke</p>
+            <form @submit.prevent="handleReset">
+              <div class="form-group">
+                <label for="reset-email">E-post</label>
+                <input
+                  id="reset-email"
+                  v-model="resetEmail"
+                  class="input"
+                  type="email"
+                  placeholder="admin@eksempel.no"
+                  required
+                />
+              </div>
+              <div class="modal-actions">
+                <button type="submit" class="btn btn-primary btn-full" :disabled="!resetEmail.trim()">Send lenke</button>
+                <button type="button" class="btn btn-secondary btn-full" @click="showReset = false">Tilbake</button>
+              </div>
+            </form>
+          </template>
         </div>
       </div>
     </Teleport>
