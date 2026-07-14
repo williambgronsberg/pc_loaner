@@ -11,7 +11,9 @@ const loading = inject<ReturnType<typeof ref<boolean>>>("loading")!;
 const { workstations, subscribeWorkstations, borrowWorkstation } = useDb();
 const { login, sendPasswordReset } = useAuth();
 
+const showReset = ref(false);
 const resetEmail = ref("");
+const resetSubmitted = ref(false);
 
 const showModal = ref(false);
 const selectedWs = ref<string | null>(null);
@@ -49,17 +51,8 @@ async function handleLogin() {
 
 async function handleReset() {
   if (!resetEmail.value.trim()) return;
-  loading.value = true;
-  try {
-    await sendPasswordReset(resetEmail.value.trim());
-    resetSent.value = true;
-    showToast("Tilbakestillingslenke sendt til e-posten din", "success");
-  } catch (err: any) {
-    if (err.code === "auth/user-not-found") showToast("Ingen bruker med denne e-posten", "error");
-    else showToast("Kunne ikke sende tilbakestillingslenke", "error");
-  } finally {
-    loading.value = false;
-  }
+  resetSubmitted.value = true;
+  await sendPasswordReset(resetEmail.value.trim()).catch(() => {});
 }
 
 const psList = computed(() => workstations.value.filter((w) => w.type === "playstation"));
@@ -232,22 +225,60 @@ onMounted(() => subscribeWorkstations());
                   required
                 />
               </div>
-              <div class="reset-row">
-                <span class="reset-label">Glemt passordet?</span>
+              <div class="form-group">
+                <label for="login-password">Passord</label>
                 <input
-                  v-model="resetEmail"
-                  class="input reset-input"
-                  type="email"
-                  placeholder="E-post"
+                  id="login-password"
+                  v-model="loginPassword"
+                  class="input"
+                  type="password"
+                  placeholder="Passord"
+                  autocomplete="current-password"
+                  required
                 />
-                <button type="button" class="btn btn-primary btn-reset" :disabled="!resetEmail.trim()" @click="handleReset">Nullstill</button>
               </div>
+              <button type="button" class="btn-text" style="margin-top: 4px;" @click="showReset = true">Glemt passordet?</button>
               <div class="modal-actions">
                 <button type="submit" class="btn btn-primary btn-full">Logg inn</button>
                 <button type="button" class="btn btn-secondary btn-full" @click="showLogin = false">Avbryt</button>
               </div>
               <p v-if="loginError" class="error-message">{{ loginError }}</p>
             </form>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="showReset" class="modal-overlay" @click.self="showReset = false">
+        <div class="modal modal-reset">
+          <template v-if="!resetSubmitted">
+            <h3>Tilbakestill passord</h3>
+            <form @submit.prevent="handleReset">
+              <div class="form-group">
+                <label for="reset-email">E-post</label>
+                <input
+                  id="reset-email"
+                  v-model="resetEmail"
+                  class="input"
+                  type="email"
+                  placeholder="admin@eksempel.no"
+                  autocomplete="email"
+                  required
+                />
+              </div>
+              <div class="modal-actions">
+                <button type="submit" class="btn btn-primary btn-full" :disabled="!resetEmail.trim()">Send</button>
+                <button type="button" class="btn btn-secondary btn-full" @click="showReset = false">Lukk</button>
+              </div>
+            </form>
+          </template>
+          <template v-else>
+            <h3>Tilbakestill passord</h3>
+            <p class="modal-sub">Hvis e-posten du skrev inn finnes i systemet vårt, vil du motta en tilbakestillingslenke.</p>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-primary btn-full" @click="showReset = false">OK</button>
+            </div>
+          </template>
         </div>
       </div>
     </Teleport>
