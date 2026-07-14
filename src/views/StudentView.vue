@@ -11,9 +11,7 @@ const loading = inject<ReturnType<typeof ref<boolean>>>("loading")!;
 const { workstations, subscribeWorkstations, borrowWorkstation } = useDb();
 const { login, sendPasswordReset } = useAuth();
 
-const showReset = ref(false);
 const resetEmail = ref("");
-const resetSent = ref(false);
 
 const showModal = ref(false);
 const selectedWs = ref<string | null>(null);
@@ -205,7 +203,6 @@ onMounted(() => subscribeWorkstations());
     <Teleport to="body">
       <div v-if="showLogin" class="modal-overlay" @click.self="showLogin = false">
         <div class="modal">
-          <template v-if="!showReset">
             <h3>Admin</h3>
             <p class="modal-sub">Logg inn for å administrere</p>
 
@@ -235,35 +232,22 @@ onMounted(() => subscribeWorkstations());
                   required
                 />
               </div>
+              <div class="reset-row">
+                <span class="reset-label">Glemt passordet?</span>
+                <input
+                  v-model="resetEmail"
+                  class="input reset-input"
+                  type="email"
+                  placeholder="E-post"
+                />
+                <button type="button" class="btn btn-primary btn-reset" :disabled="!resetEmail.trim()" @click="handleReset">Nullstill</button>
+              </div>
               <div class="modal-actions">
                 <button type="submit" class="btn btn-primary btn-full">Logg inn</button>
                 <button type="button" class="btn btn-secondary btn-full" @click="showLogin = false">Avbryt</button>
               </div>
               <p v-if="loginError" class="error-message">{{ loginError }}</p>
-              <button type="button" class="btn-text" @click="showReset = true; resetSent = false">Glemt passord?</button>
             </form>
-          </template>
-          <template v-else>
-            <h3>Tilbakestill passord</h3>
-            <p class="modal-sub">Skriv e-posten din for å få en tilbakestillingslenke</p>
-            <form @submit.prevent="handleReset">
-              <div class="form-group">
-                <label for="reset-email">E-post</label>
-                <input
-                  id="reset-email"
-                  v-model="resetEmail"
-                  class="input"
-                  type="email"
-                  placeholder="admin@eksempel.no"
-                  required
-                />
-              </div>
-              <div class="modal-actions">
-                <button type="submit" class="btn btn-primary btn-full" :disabled="!resetEmail.trim()">Send lenke</button>
-                <button type="button" class="btn btn-secondary btn-full" @click="showReset = false">Tilbake</button>
-              </div>
-            </form>
-          </template>
         </div>
       </div>
     </Teleport>
@@ -493,5 +477,26 @@ onMounted(() => subscribeWorkstations());
   border-color: #f5c518;
   background: #f5c518;
   color: #1a1a1a;
+}
+
+.reset-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 0.8125rem;
+}
+.reset-label {
+  white-space: nowrap;
+  color: #a3a3a3;
+}
+.reset-input {
+  flex: 1;
+  min-width: 0;
+}
+.btn-reset {
+  white-space: nowrap;
+  padding: 10px 14px;
+  font-size: 0.75rem;
 }
 </style>
