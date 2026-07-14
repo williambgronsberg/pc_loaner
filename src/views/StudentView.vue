@@ -225,18 +225,6 @@ onMounted(() => subscribeWorkstations());
                   required
                 />
               </div>
-              <div class="form-group">
-                <label for="login-password">Passord</label>
-                <input
-                  id="login-password"
-                  v-model="loginPassword"
-                  class="input"
-                  type="password"
-                  placeholder="Passord"
-                  autocomplete="current-password"
-                  required
-                />
-              </div>
               <button type="button" class="btn-text" style="margin-top: 4px;" @click="showReset = true">Glemt passordet?</button>
               <div class="modal-actions">
                 <button type="submit" class="btn btn-primary btn-full">Logg inn</button>
