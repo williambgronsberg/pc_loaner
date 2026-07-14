@@ -93,7 +93,10 @@ onMounted(() => subscribeWorkstations());
   <div class="student-layout">
     <button class="admin-corner" @click="showLogin = true; nextTick(() => emailInput?.focus())">Admin</button>
 
-    <p v-if="workstations.length === 0" class="empty-state">Laster...</p>
+    <div v-if="workstations.length === 0" class="init-load">
+      <div class="loader-ring" />
+      <p>Laster...</p>
+    </div>
 
     <div v-else class="ws-scroll">
       <div v-if="psList.length" class="ps-row">
@@ -249,6 +252,28 @@ onMounted(() => subscribeWorkstations());
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.init-load {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.init-load p {
+  color: #a3a3a3;
+  font-size: 1rem;
+  font-weight: 500;
+  animation: loadPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes loadPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
 
 .ws-scroll {
