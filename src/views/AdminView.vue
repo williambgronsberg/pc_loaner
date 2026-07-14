@@ -120,12 +120,14 @@ async function handleRemoveWs(name: string) {
 }
 
 const editingWs = ref<string | null>(null);
+const editName = ref("");
 const editType = ref<"pc" | "playstation">("pc");
 const editKeyboard = ref("");
 const editMouse = ref("");
 
-function startEdit(ws: { id: string; type: string; keyboard: string; mouse: string }) {
+function startEdit(ws: { id: string; name: string; type: string; keyboard: string; mouse: string }) {
   editingWs.value = ws.id;
+  editName.value = ws.name;
   editType.value = ws.type as "pc" | "playstation";
   editKeyboard.value = ws.keyboard || "";
   editMouse.value = ws.mouse || "";
@@ -140,6 +142,7 @@ async function saveEdit() {
   loading.value = true;
   try {
     await updateWorkstation(editingWs.value, {
+      newName: editName.value.trim(),
       type: editType.value,
       keyboard: editKeyboard.value.trim(),
       mouse: editMouse.value.trim(),
@@ -262,7 +265,10 @@ onMounted(() => {
           <div v-for="ws in workstations" :key="ws.id" class="card-row manage-row">
             <template v-if="editingWs === ws.id">
               <div class="edit-inline">
-                <div class="edit-name">{{ ws.name }}</div>
+                <div class="form-group">
+                  <label>Navn</label>
+                  <input v-model="editName" class="input" placeholder="Navn" />
+                </div>
                 <div class="type-picker" style="margin-bottom:8px;">
                   <button type="button" class="type-btn" :class="{ active: editType === 'pc' }" @click="editType = 'pc'">
                     <SfIcon name="desktopcomputer" :size="16" /> PC

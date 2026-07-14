@@ -199,14 +199,29 @@ export function useDb() {
   }
 
   async function updateWorkstation(
-    name: string,
-    data: { keyboard?: string; mouse?: string; type?: WsType }
+    oldName: string,
+    data: { newName?: string; keyboard?: string; mouse?: string; type?: WsType }
   ) {
-    const updateData: Record<string, any> = {};
-    if (data.keyboard !== undefined) updateData.keyboard = data.keyboard;
-    if (data.mouse !== undefined) updateData.mouse = data.mouse;
-    if (data.type !== undefined) updateData.type = data.type;
-    await updateDoc(doc(db, "workstations", name), updateData);
+    const newName = data.newName?.trim();
+    if (newName && newName !== oldName) {
+      const oldSnap = await getDoc(doc(db, "workstations", oldName));
+      if (!oldSnap.exists()) return;
+      const oldData = oldSnap.data();
+      await setDoc(doc(db, "workstations", newName), {
+        ...oldData,
+        name: newName,
+        keyboard: data.keyboard ?? oldData.keyboard,
+        mouse: data.mouse ?? oldData.mouse,
+        type: data.type ?? oldData.type,
+      });
+      await deleteDoc(doc(db, "workstations", oldName));
+    } else {
+      const updateData: Record<string, any> = {};
+      if (data.keyboard !== undefined) updateData.keyboard = data.keyboard;
+      if (data.mouse !== undefined) updateData.mouse = data.mouse;
+      if (data.type !== undefined) updateData.type = data.type;
+      await updateDoc(doc(db, "workstations", oldName), updateData);
+    }
   }
 
   return {
