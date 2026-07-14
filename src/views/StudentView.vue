@@ -2,18 +2,48 @@
 import { ref, inject, onMounted, computed, nextTick } from "vue";
 import type { ViewName, ToastType } from "@/types";
 import { useDb } from "@/composables/useDb";
+import { useAuth } from "@/composables/useAuth";
 
 const currentView = inject<ReturnType<typeof ref<ViewName>>>("currentView")!;
 const showToast = inject<(msg: string, type?: ToastType) => void>("showToast")!;
 const loading = inject<ReturnType<typeof ref<boolean>>>("loading")!;
 
 const { workstations, subscribeWorkstations, borrowWorkstation } = useDb();
+const { login } = useAuth();
 
 const showModal = ref(false);
 const selectedWs = ref<string | null>(null);
 const borrowerName = ref("");
 const controllerCount = ref(2);
 const nameInput = ref<HTMLInputElement | null>(null);
+
+const showLogin = ref(false);
+const loginEmail = ref("");
+const loginPassword = ref("");
+const loginError = ref("");
+const emailInput = ref<HTMLInputElement | null>(null);
+
+async function handleLogin() {
+  loginError.value = "";
+  loading.value = true;
+  try {
+    await login(loginEmail.value, loginPassword.value);
+    showLogin.value = false;
+    loginEmail.value = "";
+    loginPassword.value = "";
+    currentView.value = "admin";
+  } catch (err: any) {
+    const code = err.code;
+    if (code === "auth/user-not-found") loginError.value = "Bruker ikke funnet";
+    else if (code === "auth/wrong-password") loginError.value = "Feil passord";
+    else if (code === "auth/invalid-email") loginError.value = "Ugyldig e-post";
+    else if (code === "auth/too-many-requests")
+      loginError.value = "For mange forsøk. Prøv igjen senere.";
+    else loginError.value = "Feil e-post eller passord";
+  } finally {
+    loading.value = false;
+  }
+}
 
 const psList = computed(() => workstations.value.filter((w) => w.type === "playstation"));
 const pcs = computed(() => workstations.value.filter((w) => w.type === "pc"));
@@ -61,7 +91,7 @@ onMounted(() => subscribeWorkstations());
 
 <template>
   <div class="student-layout">
-    <button class="admin-corner" @click="currentView = 'login'">Admin</button>
+    <button class="admin-corner" @click="showLogin = true; nextTick(() => emailInput?.focus())">Admin</button>
 
     <p v-if="workstations.length === 0" class="empty-state">Laster...</p>
 
@@ -146,6 +176,48 @@ onMounted(() => subscribeWorkstations());
             </button>
             <button class="btn btn-secondary btn-full" @click="cancel">Avbryt</button>
           </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="showLogin" class="modal-overlay" @click.self="showLogin = false">
+        <div class="modal">
+          <h3>Admin</h3>
+          <p class="modal-sub">Logg inn for å administrere</p>
+
+          <form @submit.prevent="handleLogin">
+            <div class="form-group">
+              <label for="login-email">E-post</label>
+              <input
+                id="login-email"
+                ref="emailInput"
+                v-model="loginEmail"
+                class="input"
+                type="email"
+                placeholder="admin@example.com"
+                autocomplete="email"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="login-password">Passord</label>
+              <input
+                id="login-password"
+                v-model="loginPassword"
+                class="input"
+                type="password"
+                placeholder="Passord"
+                autocomplete="current-password"
+                required
+              />
+            </div>
+            <div class="modal-actions">
+              <button type="submit" class="btn btn-primary btn-full">Logg inn</button>
+              <button type="button" class="btn btn-secondary btn-full" @click="showLogin = false">Avbryt</button>
+            </div>
+            <p v-if="loginError" class="error-message">{{ loginError }}</p>
+          </form>
         </div>
       </div>
     </Teleport>
