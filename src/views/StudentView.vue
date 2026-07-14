@@ -209,25 +209,31 @@ onMounted(() => subscribeWorkstations());
   display: flex;
   flex-direction: column;
   flex: 1;
-  padding: 16px;
-  gap: 24px;
-  overflow-y: auto;
+  padding: 6px;
+  gap: 6px;
+}
+
+.section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .section-label {
-  font-size: 0.8125rem;
-  font-weight: 700;
+  font-size: 0.75rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--text-tertiary, #8E8E93);
-  margin-bottom: 10px;
-  padding-left: 4px;
+  margin-bottom: 4px;
+  padding-left: 2px;
 }
 
 .card-row {
+  flex: 1;
   display: flex;
   flex-direction: row;
-  gap: 10px;
+  gap: 6px;
 }
 
 .card {
@@ -235,16 +241,16 @@ onMounted(() => subscribeWorkstations());
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 16px 18px;
+  padding: 12px 14px;
   background: var(--card, #FFFFFF);
-  border-radius: 20px;
+  border-radius: 16px;
   border-left: 4px solid transparent;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
   cursor: pointer;
   transition: all var(--duration-fast, 150ms) var(--curve-standard, cubic-bezier(0.25, 0.1, 0.25, 1));
   -webkit-tap-highlight-color: transparent;
   user-select: none;
-  gap: 8px;
+  gap: 6px;
 }
 
 .card:active {
