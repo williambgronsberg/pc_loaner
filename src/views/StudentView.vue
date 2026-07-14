@@ -15,21 +15,30 @@ const borrowerName = ref("");
 const controllerCount = ref(2);
 const nameInput = ref<HTMLInputElement | null>(null);
 
-const colorMap: Record<string, string> = {
-  PlayStation: "#ED4B82",
-  "PlayStation 2": "#FDAE00",
-  "PC 1": "#2BB9A8",
-  "PC 2": "#3C8D2D",
-  "PC 3": "#EB9532",
-};
-
 const psList = computed(() => workstations.value.filter((w) => w.type === "playstation"));
 const pcs = computed(() => workstations.value.filter((w) => w.type === "pc"));
 const selected = computed(() => workstations.value.find((ws) => ws.id === selectedWs.value));
 const isPs = computed(() => selected.value?.type === "playstation");
 
-function wsColor(ws: { name: string }) {
-  return colorMap[ws.name] || "#ED4B82";
+const PS_COLOR = "#3B82F6";
+const PC_COLOR = "#22C55E";
+const UNAVAILABLE = "#E5E7EB";
+
+function wsBg(ws: { type: string; status: string }) {
+  if (ws.status !== "available") return UNAVAILABLE;
+  return ws.type === "playstation" ? PS_COLOR : PC_COLOR;
+}
+
+function wsTextColor(ws: { type: string; status: string }) {
+  return ws.status === "available" ? "#fff" : "#9CA3AF";
+}
+
+function badgeBg(ws: { status: string }) {
+  return ws.status === "available" ? "#22C55E" : "#EF4444";
+}
+
+function badgeText(ws: { status: string }) {
+  return ws.status === "available" ? "Ledig" : "Opptatt";
 }
 
 function openBorrow(id: string) {
@@ -78,47 +87,49 @@ onMounted(() => subscribeWorkstations());
     <p v-if="workstations.length === 0" class="empty-state">Laster...</p>
 
     <div v-else class="ws-scroll">
-      <div v-if="psList.length" class="ps-row">
-        <div
-          v-for="ws in psList"
-          :key="ws.id"
-          class="ws-bar available"
-          tabindex="0"
-          role="button"
-          :style="{ background: ws.status === 'available' ? wsColor(ws) : undefined }"
-          @click="ws.status === 'available' && openBorrow(ws.id)"
-          @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
-        >
-          <div class="ws-bar-inner">
-            <div class="ws-bar-emoji">🎮</div>
-            <div class="ws-bar-name">{{ ws.name }}</div>
-            <div v-if="ws.keyboard" class="ws-bar-detail">{{ ws.keyboard }}</div>
-            <div class="ws-block-badge" :style="{ background: 'rgba(0,0,0,0.15)', color: 'inherit' }">
-              {{ ws.status === "available" ? "Trykk for å låne" : "Opptatt" }}
+      <div v-if="psList.length" class="section">
+        <div class="section-label">🎮 PlayStation</div>
+        <div class="card-row">
+          <div
+            v-for="ws in psList"
+            :key="ws.id"
+            class="card"
+            :class="{ borrowed: ws.status !== 'available' }"
+            :style="{ background: wsBg(ws), color: wsTextColor(ws) }"
+            tabindex="0"
+            role="button"
+            @click="ws.status === 'available' && openBorrow(ws.id)"
+            @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
+          >
+            <div class="card-name">{{ ws.name }}</div>
+            <div v-if="ws.keyboard" class="card-detail">{{ ws.keyboard }}</div>
+            <div class="card-badge" :style="{ background: badgeBg(ws), color: '#fff' }">
+              {{ badgeText(ws) }}
             </div>
           </div>
         </div>
       </div>
 
-      <div class="ws-row">
-        <div
-          v-for="ws in pcs"
-          :key="ws.id"
-          class="ws-block available"
-          tabindex="0"
-          role="button"
-          :style="{ background: ws.status === 'available' ? wsColor(ws) : undefined }"
-          @click="ws.status === 'available' && openBorrow(ws.id)"
-          @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
-        >
-          <div class="ws-block-inner">
-            <div class="ws-block-emoji">💻</div>
-            <div class="ws-block-name">{{ ws.name }}</div>
-            <div v-if="ws.keyboard || ws.mouse" class="ws-block-detail">
+      <div v-if="pcs.length" class="section">
+        <div class="section-label">🖥️ PC</div>
+        <div class="card-row">
+          <div
+            v-for="ws in pcs"
+            :key="ws.id"
+            class="card"
+            :class="{ borrowed: ws.status !== 'available' }"
+            :style="{ background: wsBg(ws), color: wsTextColor(ws) }"
+            tabindex="0"
+            role="button"
+            @click="ws.status === 'available' && openBorrow(ws.id)"
+            @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
+          >
+            <div class="card-name">{{ ws.name }}</div>
+            <div v-if="ws.keyboard || ws.mouse" class="card-detail">
               {{ [ws.keyboard, ws.mouse].filter(Boolean).join(" · ") }}
             </div>
-            <div class="ws-block-badge" :style="{ background: 'rgba(0,0,0,0.15)', color: 'inherit' }">
-              {{ ws.status === "available" ? "Trykk for å låne" : "Opptatt" }}
+            <div class="card-badge" :style="{ background: badgeBg(ws), color: '#fff' }">
+              {{ badgeText(ws) }}
             </div>
           </div>
         </div>
@@ -128,7 +139,7 @@ onMounted(() => subscribeWorkstations());
     <Teleport to="body">
       <div v-if="showModal && selected" class="modal-overlay" @click.self="cancel">
         <div class="modal">
-          <div class="modal-emoji">{{ isPs ? "🎮" : "💻" }}</div>
+          <div class="modal-emoji">{{ isPs ? "🎮" : "🖥️" }}</div>
           <h3>{{ selected.name }}</h3>
           <p class="modal-sub">Skriv navnet ditt for å låne</p>
 
@@ -173,6 +184,8 @@ onMounted(() => subscribeWorkstations());
   flex-direction: column;
   height: 100dvh;
   width: 100%;
+  background: #F8FAFC;
+  color: #1F2937;
   position: relative;
 }
 
@@ -181,143 +194,83 @@ onMounted(() => subscribeWorkstations());
   bottom: 20px;
   right: 20px;
   z-index: 50;
-  background: var(--yellow);
-  color: var(--black);
+  background: #1F2937;
+  color: #fff;
   border: none;
   padding: 10px 18px;
   border-radius: 100px;
   font-size: 0.8125rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 .ws-scroll {
   display: flex;
   flex-direction: column;
   flex: 1;
-  padding: 8px;
-  gap: 8px;
+  padding: 16px;
+  gap: 24px;
+  overflow-y: auto;
 }
 
-.ps-row {
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748B;
+  margin-bottom: 10px;
+}
+
+.card-row {
   display: flex;
   flex-direction: row;
-  gap: 8px;
-  flex-shrink: 0;
+  gap: 10px;
 }
 
-.ws-bar {
+.card {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.15s;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  text-align: center;
-  min-height: 120px;
-  color: #000;
-}
-
-.ws-bar.borrowed {
-  background: var(--black-card) !important;
-  border: 2px solid var(--black-border);
-  color: var(--gray-400) !important;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.ws-bar-inner {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
-}
-
-.ws-bar-emoji {
-  font-size: 2.5rem;
-}
-
-.ws-bar-name {
-  font-size: 1.4rem;
-  font-weight: 800;
-}
-
-.ws-bar-detail {
-  font-size: 0.85rem;
-  opacity: 0.7;
-  margin-left: 4px;
-}
-
-.ws-row {
-  display: flex;
-  flex-direction: row;
-  flex: 1;
-  gap: 8px;
-}
-
-.ws-block {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.15s;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  text-align: center;
-  color: #000;
-}
-
-.ws-block:active {
-  opacity: 0.85;
-  transform: scale(0.98);
-}
-
-.ws-block.borrowed {
-  background: var(--black-card) !important;
-  border: 2px solid var(--black-border);
-  color: var(--gray-400) !important;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.ws-block-inner {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-.ws-block-emoji {
-  font-size: 3rem;
+.card.available:active {
+  transform: scale(0.97);
+  opacity: 0.9;
 }
 
-.ws-block-name {
-  font-size: 1.6rem;
+.card.borrowed {
+  cursor: not-allowed;
+}
+
+.card-name {
+  font-size: 1.5rem;
   font-weight: 800;
 }
 
-.ws-block-detail {
-  font-size: 0.85rem;
-  opacity: 0.7;
+.card-detail {
+  font-size: 0.8125rem;
+  opacity: 0.75;
 }
 
-.ws-block-badge {
-  font-size: 0.8rem;
+.card-badge {
+  font-size: 0.75rem;
   font-weight: 700;
-  padding: 6px 20px;
+  padding: 5px 16px;
   border-radius: 100px;
-  margin-top: 6px;
-}
-
-.ws-block-badge.borrowed {
-  background: var(--gray-700);
-  color: var(--gray-400);
+  margin-top: 4px;
 }
 
 .modal-emoji {
@@ -336,18 +289,18 @@ onMounted(() => subscribeWorkstations());
   padding: 14px;
   font-size: 1.2rem;
   font-weight: 700;
-  border: 2px solid var(--black-border);
+  border: 2px solid #E2E8F0;
   border-radius: var(--radius-sm);
-  background: var(--black);
-  color: var(--white);
+  background: #F8FAFC;
+  color: #1F2937;
   cursor: pointer;
   transition: all 0.15s;
   text-align: center;
 }
 
 .ctrl-btn.active {
-  border-color: var(--yellow);
-  background: var(--yellow);
-  color: var(--black);
+  border-color: #3B82F6;
+  background: #3B82F6;
+  color: #fff;
 }
 </style>

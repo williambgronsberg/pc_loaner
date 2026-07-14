@@ -209,7 +209,7 @@ body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.75);
+  background: rgba(0,0,0,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -218,25 +218,25 @@ body {
 }
 
 .modal {
-  background: var(--black-card);
+  background: #fff;
   border-radius: var(--radius);
   width: 100%;
   max-width: 380px;
   padding: 28px 24px 24px;
-  box-shadow: var(--shadow-modal);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.2);
 }
 
 .modal h3 {
   font-size: 1.3rem;
   font-weight: 800;
-  color: var(--yellow);
+  color: #1F2937;
   margin-bottom: 6px;
   text-align: center;
 }
 
 .modal-sub {
   text-align: center;
-  color: var(--gray-400);
+  color: #64748B;
   font-size: 0.875rem;
   margin-bottom: 20px;
 }
@@ -278,7 +278,7 @@ body {
   display: block;
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--gray-400);
+  color: #64748B;
   margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -288,10 +288,10 @@ body {
   width: 100%;
   padding: 16px;
   font-size: 1.05rem;
-  border: 2px solid var(--black-border);
+  border: 2px solid #E2E8F0;
   border-radius: var(--radius-sm);
-  background: var(--black);
-  color: var(--white);
+  background: #F8FAFC;
+  color: #1F2937;
   transition: border-color 0.2s;
   -webkit-appearance: none;
   appearance: none;
@@ -299,11 +299,11 @@ body {
 
 .input:focus {
   outline: none;
-  border-color: var(--yellow);
+  border-color: #3B82F6;
 }
 
 .input::placeholder {
-  color: var(--gray-600);
+  color: #94A3B8;
 }
 
 /* ===== BUTTONS ===== */
@@ -331,28 +331,28 @@ body {
 }
 
 .btn-primary {
-  background: var(--yellow);
-  color: var(--black);
+  background: #3B82F6;
+  color: #fff;
 }
 
 .btn-primary:active {
-  background: var(--yellow-dark);
+  background: #2563EB;
 }
 
 .btn-primary:disabled {
-  background: var(--gray-700);
-  color: var(--gray-500);
+  background: #94A3B8;
+  color: #E2E8F0;
   cursor: not-allowed;
 }
 
 .btn-secondary {
   background: transparent;
-  color: var(--gray-400);
-  border: 2px solid var(--black-border);
+  color: #64748B;
+  border: 2px solid #E2E8F0;
 }
 
 .btn-secondary:active {
-  background: var(--black-border);
+  background: #F1F5F9;
 }
 
 .btn-text {
