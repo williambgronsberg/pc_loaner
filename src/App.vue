@@ -42,7 +42,7 @@ provide("loading", loading);
   </div>
 
   <div id="loading-overlay" v-if="loading">
-    <div class="spinner"></div>
+    <div class="skeleton-box" />
     <p>Laster...</p>
   </div>
 

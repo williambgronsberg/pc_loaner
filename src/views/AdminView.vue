@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { ref, inject, onMounted, onUnmounted } from "vue";
+import { ref, computed, inject, onMounted, onUnmounted } from "vue";
 import type { ViewName, TabName, ToastType } from "@/types";
 import { useAuth } from "@/composables/useAuth";
 import { useDb } from "@/composables/useDb";
+import SfIcon from "@/components/SfIcon.vue";
 
 const currentView = inject<ReturnType<typeof ref<ViewName>>>("currentView")!;
 const showToast = inject<(msg: string, type?: ToastType) => void>("showToast")!;
 const loading = inject<ReturnType<typeof ref<boolean>>>("loading")!;
 
-const { logout } = useAuth();
+const { currentUser, logout } = useAuth();
 const {
   workstations,
   activeBorrows,
@@ -22,6 +23,12 @@ const {
 } = useDb();
 
 const activeTab = ref<TabName>("borrows");
+const tabs = [
+  { key: "borrows", label: "Utlån", icon: "📋" },
+  { key: "history", label: "Historikk", icon: "🕐" },
+  { key: "manage", label: "Enheter", icon: "⚙️" },
+] as const;
+const userEmail = computed(() => currentUser.value?.email ?? "");
 const historyRecords = ref<any[]>([]);
 const historyLastDoc = ref<any>(null);
 const addName = ref("");
@@ -139,39 +146,35 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="view active">
-    <header class="header">
-      <div class="header-row">
-        <h1 class="header-title">Admin</h1>
-        <button class="btn-text" @click="handleLogout">Logg ut</button>
+  <div class="admin-split">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <div class="sidebar-title">Admin</div>
+        <button class="sidebar-close" @click="handleLogout">
+          <span class="sidebar-close-icon">←</span>
+          Logg ut
+        </button>
       </div>
-    </header>
+      <nav class="sidebar-nav">
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          class="sidebar-item"
+          :class="{ active: activeTab === tab.key }"
+          @click="switchTab(tab.key)"
+        >
+          <span class="sidebar-item-icon">{{ tab.icon }}</span>
+          <span class="sidebar-item-label">{{ tab.label }}</span>
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-footer-text">{{ userEmail }}</div>
+      </div>
+    </aside>
 
-    <main class="content">
-      <ul class="admin-tabs">
-        <li>
-          <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'borrows' }"
-            @click="switchTab('borrows')"
-          >Utlån</button>
-        </li>
-        <li>
-          <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'history' }"
-            @click="switchTab('history')"
-          >Historikk</button>
-        </li>
-        <li>
-          <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'manage' }"
-            @click="switchTab('manage')"
-          >Enheter</button>
-        </li>
-      </ul>
-
+    <!-- Content area -->
+    <main class="admin-content">
       <!-- === ACTIVE BORROWS === -->
       <section v-show="activeTab === 'borrows'">
         <h2 class="section-title">Utlånt utstyr</h2>
@@ -209,7 +212,7 @@ onMounted(() => {
             </div>
             <span
               style="font-size:0.8125rem;font-weight:600;"
-              :style="{ color: rec.returnedAt ? 'var(--green)' : 'var(--red)' }"
+              :style="{ color: rec.returnedAt ? 'var(--accent-success)' : 'var(--accent-error)' }"
             >{{ rec.returnedAt ? "Returnert" : "Aktiv" }}</span>
           </div>
           <button
@@ -227,7 +230,7 @@ onMounted(() => {
         <div class="workstations-manage-list">
           <div v-for="ws in workstations" :key="ws.id" class="ws-manage-item">
             <div>
-              <div class="ws-name">{{ ws.type === 'playstation' ? '🎮' : '💻' }} {{ ws.name }}</div>
+              <div class="ws-name"><SfIcon :name="ws.type === 'playstation' ? 'gamecontroller' : 'desktopcomputer'" :size="16" /> {{ ws.name }}</div>
               <div class="ws-status">{{ ws.status === 'available' ? 'Ledig' : 'Utlånt' }}</div>
             </div>
             <button
@@ -252,8 +255,8 @@ onMounted(() => {
           <div class="form-group">
             <label>Type</label>
             <div style="display:flex;gap:8px;">
-              <button type="button" class="btn" :class="addType === 'pc' ? 'btn-primary' : 'btn-secondary'" style="flex:1" @click="addType = 'pc'">💻 PC</button>
-              <button type="button" class="btn" :class="addType === 'playstation' ? 'btn-primary' : 'btn-secondary'" style="flex:1" @click="addType = 'playstation'">🎮 PlayStation</button>
+              <button type="button" class="btn" :class="addType === 'pc' ? 'btn-primary' : 'btn-secondary'" style="flex:1;gap:6px;" @click="addType = 'pc'"><SfIcon name="desktopcomputer" :size="16" /> PC</button>
+              <button type="button" class="btn" :class="addType === 'playstation' ? 'btn-primary' : 'btn-secondary'" style="flex:1;gap:6px;" @click="addType = 'playstation'"><SfIcon name="gamecontroller" :size="16" /> PlayStation</button>
             </div>
           </div>
           <div class="form-group">
@@ -270,3 +273,109 @@ onMounted(() => {
     </main>
   </div>
 </template>
+
+<style scoped>
+.admin-split {
+  display: flex;
+  height: 100dvh;
+  width: 100%;
+  background: var(--bg, #F2F2F7);
+}
+
+.sidebar {
+  width: 240px;
+  background: var(--card, #FFFFFF);
+  border-right: 1px solid var(--separator, #C6C6C8);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  padding: 20px 0;
+}
+
+.sidebar-top {
+  padding: 0 20px 20px;
+  border-bottom: 1px solid var(--separator, #C6C6C8);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--text-primary, #1C1C1E);
+}
+
+.sidebar-close {
+  background: none;
+  border: none;
+  color: var(--accent-ps, #0A84FF);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #3A3A3C);
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--curve-standard);
+  text-align: left;
+  width: 100%;
+}
+
+.sidebar-item:hover {
+  background: var(--fill, #E5E5EA);
+}
+
+.sidebar-item.active {
+  background: var(--accent-ps, #0A84FF);
+  color: var(--button-text, #FFFFFF);
+}
+
+.sidebar-item-icon {
+  font-size: 1.25rem;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--separator, #C6C6C8);
+}
+
+.sidebar-footer-text {
+  font-size: 0.8125rem;
+  color: var(--text-tertiary, #8E8E93);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  max-width: 800px;
+}
+</style>

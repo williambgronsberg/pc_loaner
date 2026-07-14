@@ -2,6 +2,8 @@
 import { ref, inject, onMounted, computed, nextTick } from "vue";
 import type { ViewName, ToastType } from "@/types";
 import { useDb } from "@/composables/useDb";
+import SfIcon from "@/components/SfIcon.vue";
+import BaseSheet from "@/components/BaseSheet.vue";
 
 const currentView = inject<ReturnType<typeof ref<ViewName>>>("currentView")!;
 const showToast = inject<(msg: string, type?: ToastType) => void>("showToast")!;
@@ -88,7 +90,7 @@ onMounted(() => subscribeWorkstations());
 
     <div v-else class="ws-scroll">
       <div v-if="psList.length" class="section">
-        <div class="section-label">🎮 PlayStation</div>
+        <div class="section-label"><SfIcon name="gamecontroller" :size="14" /> PlayStation</div>
         <div class="card-row">
           <div
             v-for="ws in psList"
@@ -111,7 +113,7 @@ onMounted(() => subscribeWorkstations());
       </div>
 
       <div v-if="pcs.length" class="section">
-        <div class="section-label">🖥️ PC</div>
+        <div class="section-label"><SfIcon name="desktopcomputer" :size="14" /> PC</div>
         <div class="card-row">
           <div
             v-for="ws in pcs"
@@ -136,45 +138,44 @@ onMounted(() => subscribeWorkstations());
       </div>
     </div>
 
-    <Teleport to="body">
-      <div v-if="showModal && selected" class="modal-overlay" @click.self="cancel">
-        <div class="modal">
-          <div class="modal-emoji">{{ isPs ? "🎮" : "🖥️" }}</div>
-          <h3>{{ selected.name }}</h3>
-          <p class="modal-sub">Skriv navnet ditt for å låne</p>
+    <BaseSheet :show="showModal" @close="cancel">
+      <div class="sheet-emoji"><SfIcon :name="isPs ? 'gamecontroller' : 'desktopcomputer'" :size="40" /></div>
+      <h3 class="sheet-title">{{ selected?.name }}</h3>
+      <p class="sheet-sub">Skriv navnet ditt for å låne</p>
 
-          <div class="form-group">
-            <label for="name-input">Ditt navn</label>
-            <input
-              id="name-input"
-              ref="nameInput"
-              v-model="borrowerName"
-              class="input"
-              placeholder="Skriv her..."
-              autocomplete="name"
-              @keydown.enter="confirm"
-            />
-          </div>
+      <div class="form-group">
+        <label for="name-input">Ditt navn</label>
+        <input
+          id="name-input"
+          ref="nameInput"
+          v-model="borrowerName"
+          class="input"
+          placeholder="Skriv her..."
+          autocomplete="name"
+          @keydown.enter="confirm"
+        />
+      </div>
 
-          <div v-if="isPs" class="form-group">
-            <label for="ctrl-input">Antall kontrollere</label>
-            <div class="ctrl-select">
-              <button class="ctrl-btn" :class="{ active: controllerCount === 1 }" @click="controllerCount = 1">1</button>
-              <button class="ctrl-btn" :class="{ active: controllerCount === 2 }" @click="controllerCount = 2">2</button>
-              <button class="ctrl-btn" :class="{ active: controllerCount === 3 }" @click="controllerCount = 3">3</button>
-              <button class="ctrl-btn" :class="{ active: controllerCount === 4 }" @click="controllerCount = 4">4</button>
-            </div>
-          </div>
-
-          <div class="modal-actions">
-            <button class="btn btn-primary btn-full" :disabled="!borrowerName.trim()" @click="confirm">
-              Bekreft lån
-            </button>
-            <button class="btn btn-secondary btn-full" @click="cancel">Avbryt</button>
-          </div>
+      <div v-if="isPs" class="form-group">
+        <label>Antall kontrollere</label>
+        <div class="segmented-control">
+          <button
+            v-for="n in [1, 2, 3, 4]"
+            :key="n"
+            class="segmented-btn"
+            :class="{ active: controllerCount === n }"
+            @click="controllerCount = n"
+          >{{ n }}</button>
         </div>
       </div>
-    </Teleport>
+
+      <div class="sheet-actions">
+        <button class="btn btn-primary btn-full" :disabled="!borrowerName.trim()" @click="confirm">
+          Bekreft lån
+        </button>
+        <button class="btn btn-secondary btn-full" @click="cancel">Avbryt</button>
+      </div>
+    </BaseSheet>
   </div>
 </template>
 
@@ -184,8 +185,8 @@ onMounted(() => subscribeWorkstations());
   flex-direction: column;
   height: 100dvh;
   width: 100%;
-  background: #F8FAFC;
-  color: #1F2937;
+  background: var(--bg);
+  color: var(--text-primary);
   position: relative;
 }
 
@@ -194,8 +195,8 @@ onMounted(() => subscribeWorkstations());
   bottom: 20px;
   right: 20px;
   z-index: 50;
-  background: #1F2937;
-  color: #fff;
+  background: var(--text-primary);
+  color: var(--card);
   border: none;
   padding: 10px 18px;
   border-radius: 100px;
@@ -219,7 +220,7 @@ onMounted(() => subscribeWorkstations());
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #64748B;
+  color: var(--text-tertiary);
   margin-bottom: 10px;
 }
 
@@ -239,14 +240,14 @@ onMounted(() => subscribeWorkstations());
   padding: 24px 16px;
   border-radius: 20px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--duration-fast) var(--curve-standard);
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-card);
 }
 
-.card.available:active {
+.card:active {
   transform: scale(0.97);
   opacity: 0.9;
 }
@@ -273,34 +274,61 @@ onMounted(() => subscribeWorkstations());
   margin-top: 4px;
 }
 
-.modal-emoji {
-  font-size: 3rem;
-  text-align: center;
+.sheet-emoji {
+  display: flex;
+  justify-content: center;
   margin-bottom: 8px;
 }
 
-.ctrl-select {
-  display: flex;
-  gap: 8px;
+.sheet-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-primary, #1C1C1E);
+  margin-bottom: 4px;
 }
 
-.ctrl-btn {
+.sheet-sub {
+  text-align: center;
+  color: var(--text-secondary, #3A3A3C);
+  font-size: 0.9375rem;
+  margin-bottom: 20px;
+}
+
+.segmented-control {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--separator, #C6C6C8);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.segmented-btn {
   flex: 1;
-  padding: 14px;
-  font-size: 1.2rem;
-  font-weight: 700;
-  border: 2px solid #E2E8F0;
-  border-radius: var(--radius-sm);
-  background: #F8FAFC;
-  color: #1F2937;
+  padding: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #3A3A3C);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--duration-fast) var(--curve-standard);
   text-align: center;
 }
 
-.ctrl-btn.active {
-  border-color: #3B82F6;
-  background: #3B82F6;
-  color: #fff;
+.segmented-btn:last-child {
+  border-right: none;
+}
+
+.segmented-btn.active {
+  background: var(--accent-ps, #0A84FF);
+  color: var(--button-text, #fff);
+}
+
+.sheet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
 }
 </style>
