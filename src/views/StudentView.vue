@@ -18,7 +18,7 @@ const resetSubmitted = ref(false);
 const showModal = ref(false);
 const selectedWs = ref<string | null>(null);
 const borrowerName = ref("");
-const controllerCount = ref(2);
+const controllerCount = ref(0);
 const nameInput = ref<HTMLInputElement | null>(null);
 
 const showLogin = ref(false);
@@ -63,7 +63,7 @@ const isPs = computed(() => selected.value?.type === "playstation");
 function openBorrow(id: string) {
   selectedWs.value = id;
   borrowerName.value = "";
-  controllerCount.value = 2;
+  controllerCount.value = 0;
   showModal.value = true;
   nextTick(() => nameInput.value?.focus());
 }
@@ -72,11 +72,13 @@ function cancel() {
   showModal.value = false;
   selectedWs.value = null;
   borrowerName.value = "";
+  controllerCount.value = 0;
 }
 
 async function confirm() {
   const name = borrowerName.value.trim();
   if (!name || !selectedWs.value) return;
+  if (isPs.value && !controllerCount.value) return;
   loading.value = true;
   try {
     await borrowWorkstation(
@@ -184,7 +186,7 @@ onMounted(() => subscribeWorkstations());
           </div>
 
           <div class="modal-actions">
-            <button class="btn btn-primary btn-full" :disabled="!borrowerName.trim()" @click="confirm">
+            <button class="btn btn-primary btn-full" :disabled="!borrowerName.trim() || (isPs && !controllerCount)" @click="confirm">
               Bekreft lån
             </button>
             <button class="btn btn-secondary btn-full" @click="cancel">Avbryt</button>
