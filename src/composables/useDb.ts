@@ -15,6 +15,7 @@ import {
   getDoc,
   deleteDoc,
   serverTimestamp,
+  Timestamp,
   type DocumentSnapshot,
 } from "firebase/firestore";
 import { db } from "@/firebase";
@@ -27,6 +28,28 @@ export function useDb() {
 
   let unsubWorkstations: (() => void) | null = null;
   let unsubBorrows: (() => void) | null = null;
+
+  async function cleanupExpired() {
+    const now = Timestamp.now();
+    const cutoff = new Timestamp(now.seconds - 86400, now.nanoseconds);
+
+    for (const record of activeBorrows.value) {
+      if (record.borrowedAt && record.borrowedAt.toMillis() <= cutoff.toMillis()) {
+        const batch = writeBatch(db);
+        const wsRef = doc(db, "workstations", record.workstation);
+        batch.update(doc(db, "borrowRecords", record.id), {
+          returnedAt: serverTimestamp(),
+        });
+        batch.update(wsRef, {
+          status: "available",
+          borrower: null,
+          borrowedAt: null,
+          currentBorrowRecord: null,
+        });
+        await batch.commit();
+      }
+    }
+  }
 
   function subscribeWorkstations() {
     if (unsubWorkstations) return;
@@ -61,6 +84,7 @@ export function useDb() {
           (a, b) => (b.borrowedAt?.toMillis() ?? 0) - (a.borrowedAt?.toMillis() ?? 0)
         );
         activeBorrows.value = list;
+        cleanupExpired();
       },
       (err) => console.error("Active borrows error:", err)
     );
@@ -126,6 +150,10 @@ export function useDb() {
     pageSize = 20,
     lastDoc?: DocumentSnapshot | null
   ) {
+    const now = Timestamp.now();
+    const cutoff = new Timestamp(now.seconds - 86400, now.nanoseconds);
+    const toDelete: string[] = [];
+
     let q = query(
       collection(db, "borrowRecords"),
       orderBy("borrowedAt", "desc"),
@@ -137,10 +165,20 @@ export function useDb() {
     const records: BorrowRecord[] = [];
     let lastVisible: DocumentSnapshot | null = null;
 
-    snapshot.forEach((d) => {
-      records.push({ id: d.id, ...(d.data() as Omit<BorrowRecord, "id">) });
-      lastVisible = d;
-    });
+    for (const d of snapshot.docs) {
+      const record = { id: d.id, ...(d.data() as Omit<BorrowRecord, "id">) };
+      if (
+        record.returnedAt &&
+        record.borrowedAt &&
+        record.borrowedAt.toMillis() <= cutoff.toMillis()
+      ) {
+        toDelete.push(d.id);
+        await deleteDoc(d.ref);
+      } else {
+        records.push(record);
+        lastVisible = d;
+      }
+    }
 
     return { records, lastVisible };
   }
