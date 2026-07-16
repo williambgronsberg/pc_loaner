@@ -147,26 +147,19 @@ export function useDb() {
     await batch.commit();
   }
 
-  async function getHistory(
-    pageSize = 20,
-    lastDoc?: DocumentSnapshot | null
-  ) {
+  async function getHistory() {
     const now = Timestamp.now();
     const cutoff = new Timestamp(now.seconds - 86400, now.nanoseconds);
 
-    let q = query(
+    const q = query(
       collection(db, "borrowRecords"),
-      orderBy("borrowedAt", "desc"),
-      limit(pageSize)
+      orderBy("borrowedAt", "desc")
     );
-    if (lastDoc) q = query(q, startAfter(lastDoc));
 
     const snapshot = await getDocs(q);
     const records: BorrowRecord[] = [];
-    let lastVisible: DocumentSnapshot | null = null;
 
     for (const d of snapshot.docs) {
-      lastVisible = d;
       const record = { id: d.id, ...(d.data() as Omit<BorrowRecord, "id">) };
       const isExpired = record.borrowedAt && record.borrowedAt.toMillis() <= cutoff.toMillis();
 
@@ -179,7 +172,7 @@ export function useDb() {
       }
     }
 
-    return { records, lastVisible };
+    return records;
   }
 
   async function seedDefaultWorkstations() {

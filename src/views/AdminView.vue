@@ -57,16 +57,10 @@ async function handleReturn(wsId: string) {
   }
 }
 
-async function loadHistory(append = false) {
+async function loadHistory() {
   loading.value = true;
   try {
-    const result = await getHistory(20, append ? historyLastDoc.value : null);
-    historyLastDoc.value = result.lastVisible;
-    if (append) {
-      historyRecords.value.push(...result.records);
-    } else {
-      historyRecords.value = result.records;
-    }
+    historyRecords.value = await getHistory();
   } catch (err) {
     console.error(err);
     showToast("Kunne ikke laste historikk", "error");
@@ -166,7 +160,6 @@ function switchTab(tab: TabName) {
   activeTab.value = tab;
   if (tab === "history") {
     historyRecords.value = [];
-    historyLastDoc.value = null;
     loadHistory();
   }
 }
@@ -254,11 +247,7 @@ onMounted(() => {
               {{ rec.returnedAt ? "Returnert" : "Aktiv" }}
             </span>
           </div>
-          <button
-            v-if="historyRecords.length >= 20"
-            class="btn-load"
-            @click="loadHistory(true)"
-          >Last flere</button>
+          <!-- "Oppdater" knapp uten paginering -->
         </div>
       </section>
 
