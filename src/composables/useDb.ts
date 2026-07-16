@@ -140,6 +140,7 @@ export function useDb() {
     if (recordId) {
       batch.update(doc(db, "borrowRecords", recordId), {
         returnedAt: serverTimestamp(),
+        borrower: null,
       });
     }
 
@@ -152,7 +153,6 @@ export function useDb() {
   ) {
     const now = Timestamp.now();
     const cutoff = new Timestamp(now.seconds - 86400, now.nanoseconds);
-    const toDelete: string[] = [];
 
     let q = query(
       collection(db, "borrowRecords"),
@@ -166,17 +166,16 @@ export function useDb() {
     let lastVisible: DocumentSnapshot | null = null;
 
     for (const d of snapshot.docs) {
+      lastVisible = d;
       const record = { id: d.id, ...(d.data() as Omit<BorrowRecord, "id">) };
-      if (
-        record.returnedAt &&
-        record.borrowedAt &&
-        record.borrowedAt.toMillis() <= cutoff.toMillis()
-      ) {
-        toDelete.push(d.id);
-        await deleteDoc(d.ref);
-      } else {
-        records.push(record);
-        lastVisible = d;
+      const isExpired = record.borrowedAt && record.borrowedAt.toMillis() <= cutoff.toMillis();
+
+      if (record.returnedAt) {
+        if (isExpired) {
+          await deleteDoc(d.ref);
+        } else {
+          records.push(record);
+        }
       }
     }
 
