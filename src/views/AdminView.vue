@@ -374,6 +374,38 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+@media (max-width: 700px) {
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: auto;
+    border-right: none;
+    border-top: 1px solid #222;
+    z-index: 100;
+    flex-direction: row;
+  }
+  .sidebar-top { display: none; }
+  .sidebar-nav {
+    flex-direction: row;
+    padding: 6px 8px;
+    gap: 4px;
+  }
+  .sidebar-item {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 6px;
+    font-size: 0.75rem;
+    gap: 4px;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 8px;
+  }
+  .sidebar-footer { display: none; }
+}
+
 .sidebar-top {
   padding: 20px 16px 16px;
   border-bottom: 1px solid #222;
@@ -456,6 +488,13 @@ onMounted(() => {
   overflow-y: auto;
 }
 
+@media (max-width: 700px) {
+  .admin-content {
+    padding: 14px;
+    padding-bottom: 80px;
+  }
+}
+
 .section-title {
   font-size: 1.0625rem;
   font-weight: 700;
@@ -479,6 +518,15 @@ onMounted(() => {
   background: #1a1a1a;
   border-radius: 14px;
   border: 1px solid #2a2a2a;
+}
+
+@media (max-width: 700px) {
+  .card-row {
+    padding: 12px 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .card-body { min-width: 0; flex: 1 1 60%; }
 }
 
 .manage-row {
@@ -653,6 +701,11 @@ onMounted(() => {
   font-weight: 700;
   margin-bottom: 14px;
   color: #fff;
+}
+
+@media (max-width: 700px) {
+  .add-form { padding: 14px; }
+  .type-btn { padding: 10px; font-size: 0.8125rem; }
 }
 
 .type-picker {
