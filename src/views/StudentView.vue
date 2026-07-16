@@ -80,14 +80,16 @@ function cancel() {
 
 async function confirm() {
   const name = borrowerName.value.trim();
+  const phone = borrowerPhone.value.trim();
   if (!name || !selectedWs.value) return;
+  if (!phone) return;
   if (isPs.value && !controllerCount.value) return;
   loading.value = true;
   try {
     await borrowWorkstation(
       selectedWs.value,
       name,
-      borrowerPhone.value.trim() || undefined,
+      phone,
       isPs.value ? controllerCount.value : undefined
     );
     showModal.value = false;
@@ -181,7 +183,7 @@ onMounted(() => subscribeWorkstations());
           </div>
 
           <div class="form-group">
-            <label for="phone-input">Telefon (valgfritt)</label>
+            <label for="phone-input">Telefon</label>
             <input
               id="phone-input"
               v-model="borrowerPhone"
@@ -189,6 +191,7 @@ onMounted(() => subscribeWorkstations());
               type="tel"
               placeholder="12345678"
               autocomplete="tel"
+              required
             />
           </div>
 
@@ -203,7 +206,7 @@ onMounted(() => subscribeWorkstations());
           </div>
 
           <div class="modal-actions">
-            <button class="btn btn-primary btn-full" :disabled="!borrowerName.trim() || (isPs && !controllerCount)" @click="confirm">
+            <button class="btn btn-primary btn-full" :disabled="!borrowerName.trim() || !borrowerPhone.trim() || (isPs && !controllerCount)" @click="confirm">
               Bekreft lån
             </button>
             <button class="btn btn-secondary btn-full" @click="cancel">Avbryt</button>

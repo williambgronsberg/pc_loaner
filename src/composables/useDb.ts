@@ -98,7 +98,7 @@ export function useDb() {
   async function borrowWorkstation(
     wsId: string,
     name: string,
-    phone?: string,
+    phone: string,
     controllers?: number
   ) {
     const batch = writeBatch(db);
@@ -115,7 +115,7 @@ export function useDb() {
     const recordData: Record<string, any> = {
       workstation: wsId,
       borrower: name,
-      phone: phone || null,
+      phone,
       borrowedAt: serverTimestamp(),
       returnedAt: null,
       controllers: controllers ?? null,

@@ -217,7 +217,7 @@ onMounted(() => {
           <div v-for="rec in activeBorrows" :key="rec.id" class="card-row">
             <div class="card-body">
               <div class="card-title">{{ rec.workstation }}</div>
-              <div class="card-meta">{{ rec.borrower }}<span v-if="rec.phone"> · {{ rec.phone }}</span></div>
+              <div class="card-meta">{{ rec.borrower }} · {{ rec.phone }}</div>
               <div class="card-meta">
                 <template v-if="rec.controllers"><SfIcon name="gamecontroller" :size="12" /> {{ rec.controllers }} kontrollere · </template>
                 {{ formatTime(rec.borrowedAt) }}
@@ -236,7 +236,7 @@ onMounted(() => {
           <div v-for="rec in historyRecords" :key="rec.id" class="card-row history-row">
             <div class="card-body">
               <div class="card-title">{{ rec.workstation }}</div>
-              <div class="card-meta">{{ rec.borrower }}<span v-if="rec.phone"> · {{ rec.phone }}</span></div>
+              <div class="card-meta">{{ rec.borrower }} · {{ rec.phone }}</div>
               <div class="card-meta">
                 <template v-if="rec.controllers"><SfIcon name="gamecontroller" :size="12" /> {{ rec.controllers }} kontrollere · </template>
                 Lånt {{ formatDate(rec.borrowedAt) }}
