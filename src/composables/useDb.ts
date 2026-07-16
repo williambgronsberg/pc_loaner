@@ -127,7 +127,9 @@ export function useDb() {
     const snap = await getDoc(wsRef);
     if (!snap.exists()) return;
 
-    const recordId = snap.data().currentBorrowRecord as string | null;
+    const ws = snap.data();
+    const recordId = ws.currentBorrowRecord as string | null;
+    const borrowerName = ws.borrower as string | null;
     const batch = writeBatch(db);
 
     batch.update(wsRef, {
@@ -138,9 +140,13 @@ export function useDb() {
     });
 
     if (recordId) {
-      batch.update(doc(db, "borrowRecords", recordId), {
+      const updateData: Record<string, any> = {
         returnedAt: serverTimestamp(),
-      });
+      };
+      if (borrowerName) {
+        updateData.borrower = borrowerName;
+      }
+      batch.update(doc(db, "borrowRecords", recordId), updateData);
     }
 
     await batch.commit();
