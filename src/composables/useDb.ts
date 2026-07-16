@@ -148,24 +148,14 @@ export function useDb() {
   }
 
   async function getHistory() {
-    const now = Timestamp.now();
-    const cutoff = new Timestamp(now.seconds - 86400, now.nanoseconds);
-
     const snapshot = await getDocs(collection(db, "borrowRecords"));
     const records: BorrowRecord[] = [];
 
     for (const d of snapshot.docs) {
       const record = { id: d.id, ...(d.data() as Omit<BorrowRecord, "id">) };
-      const isExpired = record.borrowedAt && record.borrowedAt.toMillis() <= cutoff.toMillis();
 
       if (record.returnedAt) {
-        if (isExpired) {
-          try {
-            await deleteDoc(d.ref);
-          } catch {}
-        } else {
-          records.push(record);
-        }
+        records.push(record);
       }
     }
 
