@@ -140,7 +140,6 @@ export function useDb() {
     if (recordId) {
       batch.update(doc(db, "borrowRecords", recordId), {
         returnedAt: serverTimestamp(),
-        borrower: null,
       });
     }
 
