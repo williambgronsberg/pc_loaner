@@ -543,20 +543,37 @@ onMounted(() => subscribeWorkstations());
 
 @media (max-width: 700px) {
   .ws-scroll {
-    padding: 6px;
-    gap: 6px;
+    padding: 8px;
+    gap: 8px;
   }
-  .ps-row { gap: 6px; }
-  .ws-bar { min-height: 70px; border-radius: 12px; }
-  .ws-bar-inner { padding: 0 12px; gap: 6px; }
-  .ws-bar-name { font-size: 1rem; }
-  .ws-bar-detail { font-size: 0.7rem; }
-  .ws-row { gap: 6px; }
-  .ws-block { border-radius: 12px; }
-  .ws-block-name { font-size: 1.2rem; }
-  .ws-block-detail { font-size: 0.65rem; }
-  .ws-block-badge { font-size: 0.65rem; padding: 4px 12px; }
-  .admin-corner { bottom: 12px; right: 12px; padding: 8px 14px; font-size: 0.75rem; }
+  .ps-row { gap: 8px; }
+  .ws-bar { min-height: 80px; border-radius: 14px; }
+  .ws-bar-inner { padding: 0 16px; gap: 8px; }
+  .ws-bar-name { font-size: 1.125rem; }
+  .ws-bar-detail { font-size: 0.75rem; }
+  .ws-row {
+    flex-direction: column;
+    gap: 8px;
+    flex: none;
+  }
+  .ws-block {
+    border-radius: 14px;
+    min-height: 80px;
+  }
+  .ws-block-inner {
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 20px;
+    gap: 8px;
+  }
+  .ws-block-name { font-size: 1.125rem; }
+  .ws-block-detail { display: none; }
+  .ws-block-badge { font-size: 0.7rem; padding: 6px 14px; margin-top: 0; }
+  .admin-corner { bottom: 16px; right: 16px; padding: 10px 18px; font-size: 0.8125rem; }
   .ws-block-badge.available { background: rgba(0,0,0,0.12); }
+
+  .modal { padding: 20px; border-radius: 18px; max-width: 100%; margin: 0 12px; }
+  .ctrl-btn { padding: 12px; font-size: 1rem; }
 }
 </style>
