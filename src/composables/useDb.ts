@@ -151,12 +151,7 @@ export function useDb() {
     const now = Timestamp.now();
     const cutoff = new Timestamp(now.seconds - 86400, now.nanoseconds);
 
-    const q = query(
-      collection(db, "borrowRecords"),
-      orderBy("borrowedAt", "desc")
-    );
-
-    const snapshot = await getDocs(q);
+    const snapshot = await getDocs(collection(db, "borrowRecords"));
     const records: BorrowRecord[] = [];
 
     for (const d of snapshot.docs) {
@@ -171,6 +166,8 @@ export function useDb() {
         }
       }
     }
+
+    records.sort((a, b) => (b.borrowedAt?.toMillis() ?? 0) - (a.borrowedAt?.toMillis() ?? 0));
 
     return records;
   }
