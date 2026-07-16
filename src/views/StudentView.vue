@@ -520,4 +520,23 @@ onMounted(() => subscribeWorkstations());
   padding: 10px 14px;
   font-size: 0.75rem;
 }
+
+@media (max-width: 700px) {
+  .ws-scroll {
+    padding: 6px;
+    gap: 6px;
+  }
+  .ps-row { gap: 6px; }
+  .ws-bar { min-height: 70px; border-radius: 12px; }
+  .ws-bar-inner { padding: 0 12px; gap: 6px; }
+  .ws-bar-name { font-size: 1rem; }
+  .ws-bar-detail { font-size: 0.7rem; }
+  .ws-row { gap: 6px; }
+  .ws-block { border-radius: 12px; }
+  .ws-block-name { font-size: 1.2rem; }
+  .ws-block-detail { font-size: 0.65rem; }
+  .ws-block-badge { font-size: 0.65rem; padding: 4px 12px; }
+  .admin-corner { bottom: 12px; right: 12px; padding: 8px 14px; font-size: 0.75rem; }
+  .ws-block-badge.available { background: rgba(0,0,0,0.12); }
+}
 </style>
