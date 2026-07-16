@@ -19,6 +19,7 @@ export interface BorrowRecord {
   id: string;
   workstation: string;
   borrower: string;
+  phone?: string;
   borrowedAt: Timestamp;
   returnedAt: Timestamp | null;
   controllers?: number;

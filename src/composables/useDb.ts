@@ -98,6 +98,7 @@ export function useDb() {
   async function borrowWorkstation(
     wsId: string,
     name: string,
+    phone?: string,
     controllers?: number
   ) {
     const batch = writeBatch(db);
@@ -111,13 +112,16 @@ export function useDb() {
       currentBorrowRecord: recordRef.id,
     });
 
-    batch.set(recordRef, {
+    const recordData: Record<string, any> = {
       workstation: wsId,
       borrower: name,
+      phone: phone || null,
       borrowedAt: serverTimestamp(),
       returnedAt: null,
       controllers: controllers ?? null,
-    });
+    };
+
+    batch.set(recordRef, recordData);
 
     await batch.commit();
   }

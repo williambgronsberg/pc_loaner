@@ -18,6 +18,7 @@ const resetSubmitted = ref(false);
 const showModal = ref(false);
 const selectedWs = ref<string | null>(null);
 const borrowerName = ref("");
+const borrowerPhone = ref("");
 const controllerCount = ref(0);
 const nameInput = ref<HTMLInputElement | null>(null);
 
@@ -63,6 +64,7 @@ const isPs = computed(() => selected.value?.type === "playstation");
 function openBorrow(id: string) {
   selectedWs.value = id;
   borrowerName.value = "";
+  borrowerPhone.value = "";
   controllerCount.value = 0;
   showModal.value = true;
   nextTick(() => nameInput.value?.focus());
@@ -72,6 +74,7 @@ function cancel() {
   showModal.value = false;
   selectedWs.value = null;
   borrowerName.value = "";
+  borrowerPhone.value = "";
   controllerCount.value = 0;
 }
 
@@ -84,12 +87,14 @@ async function confirm() {
     await borrowWorkstation(
       selectedWs.value,
       name,
+      borrowerPhone.value.trim() || undefined,
       isPs.value ? controllerCount.value : undefined
     );
     showModal.value = false;
     showToast(`Du låner ${selectedWs.value}`, "success");
     selectedWs.value = null;
     borrowerName.value = "";
+    borrowerPhone.value = "";
   } catch (err) {
     console.error(err);
     showToast("Kunne ikke fullføre lånet", "error");
@@ -172,6 +177,18 @@ onMounted(() => subscribeWorkstations());
               placeholder="Skriv her..."
               autocomplete="name"
               @keydown.enter="confirm"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="phone-input">Telefon (valgfritt)</label>
+            <input
+              id="phone-input"
+              v-model="borrowerPhone"
+              class="input"
+              type="tel"
+              placeholder="12345678"
+              autocomplete="tel"
             />
           </div>
 
