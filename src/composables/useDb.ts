@@ -160,7 +160,9 @@ export function useDb() {
 
       if (record.returnedAt) {
         if (isExpired) {
-          await deleteDoc(d.ref);
+          try {
+            await deleteDoc(d.ref);
+          } catch {}
         } else {
           records.push(record);
         }
