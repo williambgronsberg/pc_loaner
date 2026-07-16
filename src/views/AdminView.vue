@@ -370,27 +370,34 @@ onMounted(() => {
     left: 0;
     right: 0;
     width: 100%;
-    height: auto;
+    height: 64px;
     border-right: none;
-    border-top: 1px solid #222;
+    border-top: 1px solid #2a2a2a;
     z-index: 100;
     flex-direction: row;
+    background: #0d0d0d;
   }
   .sidebar-top { display: none; }
   .sidebar-nav {
     flex-direction: row;
-    padding: 6px 8px;
-    gap: 4px;
+    padding: 0;
+    gap: 0;
+    height: 100%;
   }
   .sidebar-item {
     flex: 1;
     justify-content: center;
-    padding: 8px 6px;
-    font-size: 0.75rem;
-    gap: 4px;
-    flex-direction: column;
     align-items: center;
-    border-radius: 8px;
+    padding: 0;
+    font-size: 0.65rem;
+    gap: 2px;
+    flex-direction: column;
+    border-radius: 0;
+    height: 100%;
+  }
+  .sidebar-item.active {
+    background: transparent;
+    color: #f5c518;
   }
   .sidebar-footer { display: none; }
 }
@@ -479,9 +486,10 @@ onMounted(() => {
 
 @media (max-width: 700px) {
   .admin-content {
-    padding: 14px;
-    padding-bottom: 80px;
+    padding: 12px;
+    padding-bottom: 76px;
   }
+  .section-title { font-size: 0.9375rem; margin-bottom: 10px; }
 }
 
 .section-title {
@@ -511,11 +519,33 @@ onMounted(() => {
 
 @media (max-width: 700px) {
   .card-row {
-    padding: 12px 12px;
+    padding: 10px 12px;
     gap: 8px;
-    flex-wrap: wrap;
+    border-radius: 12px;
   }
-  .card-body { min-width: 0; flex: 1 1 60%; }
+  .card-body { flex: 1; min-width: 0; }
+  .card-title { font-size: 0.875rem; }
+  .card-meta { font-size: 0.75rem; }
+  .card-status { font-size: 0.7rem; }
+  .add-form { padding: 14px; }
+  .add-form h3 { font-size: 0.875rem; }
+  .type-btn { padding: 10px; font-size: 0.75rem; }
+  .btn-return, .btn-edit, .btn-remove {
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+  .btn-load, .btn-seed {
+    padding: 12px;
+    font-size: 0.8125rem;
+  }
+  .btn-submit { padding: 14px; font-size: 0.875rem; }
+  .form-group label { font-size: 0.8125rem; }
+  .edit-inline { gap: 6px; }
+  .edit-inline .form-group { min-width: 0; }
+  input.input { font-size: 0.875rem; padding: 10px 12px; }
+  .history-row { flex-direction: column; align-items: flex-start; }
+  .history-row .card-body { width: 100%; }
 }
 
 .manage-row {
