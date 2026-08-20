@@ -118,47 +118,66 @@ onMounted(() => subscribeWorkstations());
     </div>
 
     <div v-else class="ws-scroll">
-      <div v-if="psList.length" class="ps-row">
-        <div
-          v-for="ws in psList"
-          :key="ws.id"
-          class="ws-bar"
-          :class="ws.status"
-          tabindex="0"
-          role="button"
-          @click="ws.status === 'available' && openBorrow(ws.id)"
-          @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
-        >
-          <div class="ws-bar-inner">
-            <div class="ws-bar-name">{{ ws.name }}</div>
-            <div v-if="ws.keyboard" class="ws-bar-detail">{{ ws.keyboard }}</div>
-            <div class="ws-block-badge" :class="ws.status">
-              {{ ws.status === "available" ? "Trykk for å låne" : "Opptatt" }}
+      <div class="desktop-layout">
+        <div v-if="psList.length" class="ps-row">
+          <div
+            v-for="ws in psList"
+            :key="ws.id"
+            class="ws-bar"
+            :class="ws.status"
+            tabindex="0"
+            role="button"
+            @click="ws.status === 'available' && openBorrow(ws.id)"
+            @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
+          >
+            <div class="ws-bar-inner">
+              <div class="ws-bar-name">{{ ws.name }}</div>
+              <div v-if="ws.keyboard" class="ws-bar-detail">{{ ws.keyboard }}</div>
+              <div class="ws-block-badge" :class="ws.status">
+                {{ ws.status === "available" ? "Trykk for å låne" : "Opptatt" }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ws-row">
+          <div
+            v-for="ws in pcs"
+            :key="ws.id"
+            class="ws-block"
+            :class="ws.status"
+            tabindex="0"
+            role="button"
+            @click="ws.status === 'available' && openBorrow(ws.id)"
+            @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
+          >
+            <div class="ws-block-inner">
+              <div class="ws-block-name">{{ ws.name }}</div>
+              <div v-if="ws.keyboard || ws.mouse || ws.accessories" class="ws-block-detail">
+                {{ [ws.keyboard, ws.mouse, ws.accessories].filter(Boolean).join(" · ") }}
+              </div>
+              <div class="ws-block-badge" :class="ws.status">
+                {{ ws.status === "available" ? "Trykk for å låne" : "Opptatt" }}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="ws-row">
+      <div class="mobile-list">
         <div
-          v-for="ws in pcs"
+          v-for="ws in workstations"
           :key="ws.id"
-          class="ws-block"
-          :class="ws.status"
+          class="mobile-item"
+          :class="[ws.type === 'playstation' ? 'ps' : 'pc', ws.status]"
           tabindex="0"
           role="button"
           @click="ws.status === 'available' && openBorrow(ws.id)"
           @keydown.enter="ws.status === 'available' && openBorrow(ws.id)"
         >
-          <div class="ws-block-inner">
-            <div class="ws-block-name">{{ ws.name }}</div>
-            <div v-if="ws.keyboard || ws.mouse || ws.accessories" class="ws-block-detail">
-              {{ [ws.keyboard, ws.mouse, ws.accessories].filter(Boolean).join(" · ") }}
-            </div>
-            <div class="ws-block-badge" :class="ws.status">
-              {{ ws.status === "available" ? "Trykk for å låne" : "Opptatt" }}
-            </div>
-          </div>
+          <div class="mobile-item-name">{{ ws.name }}</div>
+          <div v-if="ws.status === 'available'" class="mobile-badge">Låne</div>
+          <div v-else class="mobile-item-borrowed">Opptatt</div>
         </div>
       </div>
     </div>
@@ -357,6 +376,10 @@ onMounted(() => subscribeWorkstations());
   gap: 8px;
 }
 
+.mobile-list {
+  display: none;
+}
+
 .ps-row {
   display: flex;
   flex-direction: row;
@@ -547,36 +570,70 @@ onMounted(() => subscribeWorkstations());
 }
 
 @media (max-width: 700px) {
+  .desktop-layout {
+    display: none;
+  }
+  .mobile-list {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 8px;
+  }
+  .mobile-item {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    border-radius: 14px;
+    gap: 12px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .mobile-item.pc.available {
+    background: #f5c518;
+    color: #1a1a1a;
+  }
+  .mobile-item.ps.available {
+    background: #1e88e5;
+    color: #fff;
+  }
+  .mobile-item.borrowed {
+    background: #2a2a2a;
+    border: 2px solid #3a3a3a;
+    color: #a3a3a3;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  .mobile-item-name {
+    font-size: 1.125rem;
+    font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .mobile-badge {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 100px;
+    background: rgba(0,0,0,0.15);
+    color: inherit;
+  }
+  .mobile-item-borrowed {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
   .ws-scroll {
     padding: 8px;
     gap: 8px;
   }
-  .ps-row { gap: 8px; }
-  .ws-bar { min-height: 80px; border-radius: 14px; }
-  .ws-bar-inner { padding: 0 16px; gap: 8px; }
-  .ws-bar-name { font-size: 1.125rem; }
-  .ws-bar-detail { font-size: 0.75rem; }
-  .ws-row {
-    flex-direction: column;
-    gap: 8px;
-    flex: none;
-  }
-  .ws-block {
-    border-radius: 14px;
-    min-height: 80px;
-  }
-  .ws-block-inner {
-    flex-direction: row;
-    justify-content: space-between;
-    width: 100%;
-    padding: 0 20px;
-    gap: 8px;
-  }
-  .ws-block-name { font-size: 1.125rem; }
-  .ws-block-detail { display: none; }
-  .ws-block-badge { font-size: 0.7rem; padding: 6px 14px; margin-top: 0; }
   .admin-corner { bottom: 16px; right: 16px; padding: 10px 18px; font-size: 0.8125rem; }
-  .ws-block-badge.available { background: rgba(0,0,0,0.12); }
 
   .modal { padding: 20px; border-radius: 18px; max-width: 100%; margin: 0 12px; }
   .ctrl-btn { padding: 12px; font-size: 1rem; }
