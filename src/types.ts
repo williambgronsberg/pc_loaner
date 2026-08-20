@@ -23,6 +23,7 @@ export interface BorrowRecord {
   borrowedAt: Timestamp;
   returnedAt: Timestamp | null;
   controllers?: number;
+  anonymizedAt?: Timestamp | null;
 }
 
 export type ViewName = "student" | "login" | "admin";

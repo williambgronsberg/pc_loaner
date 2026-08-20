@@ -119,6 +119,7 @@ export function useDb() {
       borrowedAt: serverTimestamp(),
       returnedAt: null,
       controllers: controllers ?? null,
+      anonymizedAt: null,
     };
 
     batch.set(recordRef, recordData);
@@ -171,6 +172,31 @@ export function useDb() {
     records.sort((a, b) => (b.borrowedAt?.toMillis() ?? 0) - (a.borrowedAt?.toMillis() ?? 0));
 
     return records;
+  }
+
+  async function anonymizeOldRecords() {
+    const cutoff = Timestamp.fromMillis(Date.now() - 30 * 86400 * 1000);
+    const snapshot = await getDocs(collection(db, "borrowRecords"));
+    const batch = writeBatch(db);
+    let count = 0;
+
+    for (const d of snapshot.docs) {
+      const data = d.data();
+      if (
+        data.returnedAt &&
+        data.returnedAt.toMillis() <= cutoff.toMillis() &&
+        !data.anonymizedAt
+      ) {
+        batch.update(d.ref, {
+          borrower: "Anonymisert",
+          phone: "",
+          anonymizedAt: serverTimestamp(),
+        });
+        count++;
+      }
+    }
+
+    if (count > 0) await batch.commit();
   }
 
   async function seedDefaultWorkstations() {
@@ -267,6 +293,7 @@ export function useDb() {
     borrowWorkstation,
     returnWorkstation,
     getHistory,
+    anonymizeOldRecords,
     seedDefaultWorkstations,
     addWorkstation,
     removeWorkstation,
