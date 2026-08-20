@@ -4,6 +4,7 @@ import type { ViewName, TabName, ToastType } from "@/types";
 import { useAuth } from "@/composables/useAuth";
 import { useDb } from "@/composables/useDb";
 import SfIcon from "@/components/SfIcon.vue";
+import ConfirmSheet from "@/components/ConfirmSheet.vue";
 
 const currentView = inject<ReturnType<typeof ref<ViewName>>>("currentView")!;
 const showToast = inject<(msg: string, type?: ToastType) => void>("showToast")!;
@@ -25,6 +26,7 @@ const {
 } = useDb();
 
 const activeTab = ref<TabName>("borrows");
+const menuOpen = ref(false);
 const tabs = [
   { key: "borrows", label: "Utlån", icon: "list" },
   { key: "history", label: "Historikk", icon: "clock" },
@@ -45,7 +47,6 @@ async function handleLogout() {
 }
 
 async function handleReturn(wsId: string) {
-  if (!confirm(`Returner ${wsId}?`)) return;
   loading.value = true;
   try {
     await returnWorkstation(wsId);
@@ -72,7 +73,6 @@ async function loadHistory() {
 }
 
 async function handleSeed() {
-  if (!confirm("Sett inn standardenheter?")) return;
   loading.value = true;
   try {
     await seedDefaultWorkstations();
@@ -104,7 +104,6 @@ async function handleAddWs() {
 }
 
 async function handleRemoveWs(name: string) {
-  if (!confirm(`Fjern ${name}?`)) return;
   loading.value = true;
   try {
     await removeWorkstation(name);
@@ -115,6 +114,31 @@ async function handleRemoveWs(name: string) {
   } finally {
     loading.value = false;
   }
+}
+
+interface ConfirmState {
+  title: string;
+  message?: string;
+  confirmLabel: string;
+  danger?: boolean;
+  onConfirm: () => void;
+}
+
+const confirmState = ref<ConfirmState | null>(null);
+
+function requestConfirm(state: ConfirmState) {
+  confirmState.value = state;
+}
+
+function closeConfirm() {
+  confirmState.value = null;
+}
+
+function resolveConfirm() {
+  const state = confirmState.value;
+  if (!state) return;
+  confirmState.value = null;
+  state.onConfirm();
 }
 
 const editingWs = ref<string | null>(null);
@@ -160,6 +184,7 @@ async function saveEdit() {
 
 function switchTab(tab: TabName) {
   activeTab.value = tab;
+  menuOpen.value = false;
   if (tab === "history") {
     historyRecords.value = [];
     loadHistory();
@@ -186,7 +211,12 @@ onMounted(() => {
 
 <template>
   <div class="admin-split">
-    <aside class="sidebar">
+    <button class="menu-toggle" :class="{ hidden: menuOpen || confirmState !== null }" @click="menuOpen = true" aria-label="Åpne meny">
+      <SfIcon name="line.3.horizontal" :size="22" />
+      <span>Meny</span>
+    </button>
+    <div v-if="menuOpen" class="sidebar-backdrop" @click="menuOpen = false" />
+    <aside class="sidebar" :class="{ open: menuOpen }">
       <div class="sidebar-top">
         <div class="sidebar-title">Admin</div>
         <button class="sidebar-logout" @click="handleLogout">
@@ -225,7 +255,7 @@ onMounted(() => {
                 {{ formatTime(rec.borrowedAt) }}
               </div>
             </div>
-            <button class="btn-return" @click="handleReturn(rec.workstation)">Returner</button>
+            <button class="btn-return" @click="requestConfirm({ title: `Returner ${rec.workstation}?`, message: 'Enheten blir tilgjengelig igjen etter retur.', confirmLabel: 'Returner', onConfirm: () => handleReturn(rec.workstation) })">Returner</button>
           </div>
         </div>
       </section>
@@ -257,7 +287,7 @@ onMounted(() => {
       <section v-show="activeTab === 'manage'">
         <h2 class="section-title">Enheter</h2>
 
-        <div class="card-list">
+        <div class="card-list manage-list">
           <div v-for="ws in workstations" :key="ws.id" class="card-row manage-row">
             <template v-if="editingWs === ws.id">
               <div class="edit-inline">
@@ -298,14 +328,14 @@ onMounted(() => {
               <button
                 v-if="ws.status === 'available'"
                 class="btn-remove"
-                @click="handleRemoveWs(ws.name)"
+                @click="requestConfirm({ title: `Fjern ${ws.name}?`, message: 'Enheten og dens lån blir slettet.', confirmLabel: 'Fjern', danger: true, onConfirm: () => handleRemoveWs(ws.name) })"
               >Fjern</button>
             </template>
           </div>
           <div v-if="workstations.length === 0" class="empty-state">Ingen enheter</div>
         </div>
 
-        <button class="btn-seed" @click="handleSeed">
+        <button class="btn-seed" @click="requestConfirm({ title: 'Sett inn standardenheter?', message: 'Legger til standardenhetene som mangler.', confirmLabel: 'Sett inn', onConfirm: handleSeed })">
           <SfIcon name="tray.and.arrow.down" :size="16" />
           Sett inn standardenheter
         </button>
@@ -344,6 +374,16 @@ onMounted(() => {
       </section>
     </main>
   </div>
+
+  <ConfirmSheet
+    :show="confirmState !== null"
+    :title="confirmState?.title ?? ''"
+    :message="confirmState?.message"
+    :confirm-label="confirmState?.confirmLabel ?? 'OK'"
+    :danger="confirmState?.danger"
+    @confirm="resolveConfirm"
+    @close="closeConfirm"
+  />
 </template>
 
 <style scoped>
@@ -365,43 +405,108 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+/* ===== Mobile menu toggle ===== */
+.menu-toggle {
+  display: none;
+  position: fixed;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  left: 15px;
+  right: 15px;
+  z-index: 300;
+  width: calc(100% - 30px);
+  height: 52px;
+  border: 1px solid #f5c518;
+  background: #000;
+  color: #f5c518;
+  border-radius: 12px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.menu-toggle:active {
+  background: #f5c518;
+  color: #111;
+}
+
+.menu-toggle.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
 @media (max-width: 700px) {
+  .menu-toggle {
+    display: flex;
+  }
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 100;
+  }
   .sidebar {
     position: fixed;
-    bottom: 0;
     left: 0;
     right: 0;
+    bottom: 0;
+    top: auto;
     width: 100%;
-    height: 64px;
-    border-right: none;
-    border-top: 1px solid #2a2a2a;
-    z-index: 100;
-    flex-direction: row;
+    height: auto;
+    max-height: 70dvh;
+    z-index: 105;
     background: #0d0d0d;
+    border-top: 1px solid #2a2a2a;
+    border-right: none;
+    border-radius: 16px 16px 0 0;
+    transform: translateY(100%);
+    transition: transform 0.22s ease;
+    overflow-y: auto;
+    padding-bottom: env(safe-area-inset-bottom);
   }
-  .sidebar-top { display: none; }
+  .sidebar::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: #333;
+    margin: 8px auto 0;
+    flex-shrink: 0;
+  }
+  .sidebar.open {
+    transform: translateY(0);
+  }
+  .sidebar-top {
+    display: flex;
+    padding-top: 8px;
+  }
   .sidebar-nav {
-    flex-direction: row;
-    padding: 0;
-    gap: 0;
-    height: 100%;
+    flex-direction: column;
+    padding: 12px 8px;
+    gap: 2px;
   }
   .sidebar-item {
-    flex: 1;
-    justify-content: center;
+    flex: none;
+    flex-direction: row;
+    justify-content: flex-start;
     align-items: center;
-    padding: 0;
-    font-size: 0.65rem;
-    gap: 2px;
-    flex-direction: column;
-    border-radius: 0;
-    height: 100%;
+    padding: 12px;
+    font-size: 0.9375rem;
+    gap: 10px;
+    border-radius: 10px;
+    min-height: 44px;
   }
   .sidebar-item.active {
-    background: transparent;
-    color: #f5c518;
+    background: #f5c518;
+    color: #111;
   }
-  .sidebar-footer { display: none; }
+  .sidebar-footer {
+    display: flex;
+  }
 }
 
 .sidebar-top {
@@ -489,7 +594,6 @@ onMounted(() => {
 @media (max-width: 700px) {
   .admin-content {
     padding: 12px;
-    padding-bottom: 76px;
   }
   .section-title { font-size: 0.9375rem; margin-bottom: 10px; }
 }
@@ -502,6 +606,10 @@ onMounted(() => {
 }
 
 /* ===== Cards ===== */
+.manage-list {
+  container-type: inline-size;
+}
+
 .card-list {
   display: flex;
   flex-direction: column;
@@ -531,27 +639,63 @@ onMounted(() => {
   .card-status { font-size: 0.7rem; }
   .add-form { padding: 14px; }
   .add-form h3 { font-size: 0.875rem; }
-  .type-btn { padding: 10px; font-size: 0.75rem; }
+  .type-btn { padding: 10px; font-size: 0.75rem; min-height: 44px; }
   .btn-return, .btn-edit, .btn-remove {
-    padding: 8px 12px;
-    font-size: 0.75rem;
+    padding: 10px 14px;
+    font-size: 0.8125rem;
     white-space: nowrap;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .btn-load, .btn-seed {
     padding: 12px;
     font-size: 0.8125rem;
+    min-height: 44px;
   }
-  .btn-submit { padding: 14px; font-size: 0.875rem; }
+  .btn-submit { padding: 14px; font-size: 0.875rem; min-height: 48px; }
   .form-group label { font-size: 0.8125rem; }
   .edit-inline { gap: 6px; }
   .edit-inline .form-group { min-width: 0; }
-  input.input { font-size: 0.875rem; padding: 10px 12px; }
+  input.input { font-size: 1rem; padding: 12px 12px; }
   .history-row { flex-direction: column; align-items: flex-start; }
   .history-row .card-body { width: 100%; }
 }
 
+@container (max-width: 360px) {
+  .manage-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .manage-row .card-body { width: 100%; }
+  .manage-row .btn-edit,
+  .manage-row .btn-remove {
+    flex: 1;
+    padding: 12px;
+  }
+  .edit-actions {
+    gap: 8px;
+  }
+  .type-picker {
+    flex-wrap: wrap;
+  }
+  .type-btn {
+    min-width: 0;
+  }
+  input.input {
+    font-size: 1rem;
+  }
+}
+
 .manage-row {
   flex-wrap: wrap;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .card-body {

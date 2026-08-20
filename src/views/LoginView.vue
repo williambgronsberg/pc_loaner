@@ -77,3 +77,13 @@ async function handleLogin() {
     </main>
   </div>
 </template>
+
+<style scoped>
+.back-btn {
+  padding: 12px 16px;
+  margin: -8px 0 -8px -8px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+</style>

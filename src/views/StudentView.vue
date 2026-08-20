@@ -360,12 +360,14 @@ onMounted(() => subscribeWorkstations());
 .ps-row {
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   gap: 8px;
   flex-shrink: 0;
 }
 
 .ws-bar {
   flex: 1;
+  min-width: 320px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -410,23 +412,30 @@ onMounted(() => subscribeWorkstations());
   font-size: 1.5rem;
   font-weight: 800;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .ws-bar-detail {
   font-size: 0.85rem;
   opacity: 0.7;
-  flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ws-row {
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   flex: 1;
   gap: 8px;
 }
 
 .ws-block {
   flex: 1;
+  min-width: 220px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -550,20 +559,33 @@ onMounted(() => subscribeWorkstations());
   .ws-scroll {
     padding: 8px;
     gap: 8px;
+    overflow: hidden;
+    min-height: 0;
   }
-  .ps-row { gap: 8px; }
-  .ws-bar { min-height: 80px; border-radius: 14px; }
+  .ps-row {
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 8px;
+  }
+  .ws-bar {
+    flex: 1;
+    min-height: 0;
+    border-radius: 14px;
+  }
   .ws-bar-inner { padding: 0 16px; gap: 8px; }
   .ws-bar-name { font-size: 1.125rem; }
-  .ws-bar-detail { font-size: 0.75rem; }
+  .ws-bar-detail { display: none; }
   .ws-row {
     flex-direction: column;
+    flex: 1;
+    min-height: 0;
     gap: 8px;
-    flex: none;
   }
   .ws-block {
+    flex: 1;
+    min-height: 0;
     border-radius: 14px;
-    min-height: 80px;
   }
   .ws-block-inner {
     flex-direction: row;
@@ -575,7 +597,13 @@ onMounted(() => subscribeWorkstations());
   .ws-block-name { font-size: 1.125rem; }
   .ws-block-detail { display: none; }
   .ws-block-badge { font-size: 0.7rem; padding: 6px 14px; margin-top: 0; }
-  .admin-corner { bottom: 16px; right: 16px; padding: 10px 18px; font-size: 0.8125rem; }
+  .admin-corner {
+    bottom: 16px;
+    right: 16px;
+    padding: 12px 20px;
+    font-size: 0.8125rem;
+    min-height: 44px;
+  }
   .ws-block-badge.available { background: rgba(0,0,0,0.12); }
 
   .modal { padding: 20px; border-radius: 18px; max-width: 100%; margin: 0 12px; }
