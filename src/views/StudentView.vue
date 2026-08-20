@@ -344,6 +344,11 @@ onMounted(() => subscribeWorkstations());
   50% { opacity: 1; }
 }
 
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
 .ws-scroll {
   display: flex;
   flex-direction: column;
@@ -575,5 +580,33 @@ onMounted(() => subscribeWorkstations());
 
   .modal { padding: 20px; border-radius: 18px; max-width: 100%; margin: 0 12px; }
   .ctrl-btn { padding: 12px; font-size: 1rem; }
+
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal {
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+    border-radius: 24px 24px 0 0;
+    padding: 28px 20px calc(20px + env(safe-area-inset-bottom));
+    animation: sheetUp 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
+    max-height: 90dvh;
+    overflow-y: auto;
+  }
+  .modal h3 { text-align: left; }
+  .modal-sub { text-align: left; font-size: 0.8125rem; }
+  .modal-actions { gap: 8px; margin-top: 14px; }
+  .btn { padding: 15px; font-size: 0.9375rem; border-radius: 14px; }
+  .form-group { margin-bottom: 12px; }
+  .form-group label { font-size: 0.8125rem; }
+  .input {
+    padding: 14px 14px;
+    font-size: 1rem;
+    border-radius: 12px;
+    -webkit-appearance: none;
+  }
+  .ctrl-btn { padding: 14px; font-size: 1.1rem; border-radius: 12px; }
 }
 </style>
