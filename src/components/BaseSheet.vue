@@ -70,10 +70,11 @@ function onTouchEnd() {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.3);
-  z-index: 100;
+  z-index: 400;
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  padding-bottom: 20px;
 }
 
 .sheet {

@@ -223,7 +223,7 @@ onMounted(() => {
 
 <template>
   <div class="admin-split">
-    <button class="menu-toggle" :class="{ hidden: menuOpen || confirmState !== null }" @click="menuOpen = true" aria-label="Åpne meny">
+    <button class="menu-toggle" :class="{ hidden: menuOpen || confirmState !== null || showAddSheet }" @click="menuOpen = true" aria-label="Åpne meny">
       <SfIcon name="line.3.horizontal" :size="22" />
       <span>Meny</span>
     </button>
