@@ -11,14 +11,20 @@ let currentY = 0;
 let dragging = false;
 
 function onTouchStart(e: TouchEvent) {
-  if (e.touches[0].clientY < 40) {
-    startY = e.touches[0].clientY;
+  if (!sheetRef.value) return;
+  const rect = sheetRef.value.getBoundingClientRect();
+  const touchY = e.touches[0].clientY;
+  // only start drag when touching handle area (top 40px of sheet)
+  if (touchY - rect.top < 40) {
+    startY = touchY;
     dragging = true;
   }
 }
 
 function onTouchMove(e: TouchEvent) {
   if (!dragging) return;
+  // prevent scroll while dragging sheet
+  e.preventDefault();
   currentY = e.touches[0].clientY - startY;
   if (currentY > 0 && sheetRef.value) {
     sheetRef.value.style.transform = `translateY(${currentY}px)`;
@@ -45,8 +51,8 @@ function onTouchEnd() {
         <div
           ref="sheetRef"
           class="sheet glass-strong"
-          @touchstart.prevent="onTouchStart"
-          @touchmove.prevent="onTouchMove"
+          @touchstart="onTouchStart"
+          @touchmove="onTouchMove"
           @touchend="onTouchEnd"
         >
           <div class="sheet-handle" />
