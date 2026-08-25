@@ -79,6 +79,13 @@ async function handleLogin() {
 </template>
 
 <style scoped>
+.card {
+  background: var(--card);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
 .back-btn {
   padding: 12px 16px;
   margin: -8px 0 -8px -8px;

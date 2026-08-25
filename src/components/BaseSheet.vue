@@ -44,7 +44,7 @@ function onTouchEnd() {
       <div v-if="show" class="sheet-overlay" @click.self="emit('close')">
         <div
           ref="sheetRef"
-          class="sheet"
+          class="sheet glass-strong"
           @touchstart.prevent="onTouchStart"
           @touchmove.prevent="onTouchMove"
           @touchend="onTouchEnd"
@@ -73,21 +73,20 @@ function onTouchEnd() {
 .sheet {
   width: 100%;
   max-width: 500px;
-  background: var(--card, #fff);
   border-radius: 20px 20px 0 0;
-  box-shadow: var(--shadow-sheet, 0 -4px 24px rgba(0,0,0,0.15));
-  padding: 8px 0 24px;
+  padding: 8px 0 calc(16px + env(safe-area-inset-bottom));
   transition: transform var(--duration-normal) var(--curve-standard);
   will-change: transform;
-  max-height: 85dvh;
+  max-height: 92dvh;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .sheet-handle {
   width: 36px;
   height: 5px;
   border-radius: 3px;
-  background: var(--separator, #C6C6C8);
+  background: rgba(255,255,255,0.28);
   margin: 8px auto 16px;
   flex-shrink: 0;
 }

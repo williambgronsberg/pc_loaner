@@ -38,14 +38,14 @@ const emit = defineEmits<{ confirm: []; close: [] }>();
 .confirm-head h3 {
   font-size: 1.0625rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-primary);
   text-align: left;
   margin: 0 0 6px;
 }
 
 .confirm-message {
   font-size: 0.875rem;
-  color: #888;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -64,25 +64,31 @@ const emit = defineEmits<{ confirm: []; close: [] }>();
   font-weight: 700;
   cursor: pointer;
   min-height: 48px;
-  transition: opacity 0.15s;
+  transition: all var(--duration-fast) var(--curve-standard);
 }
 
 .confirm-btn:active {
-  opacity: 0.85;
+  transform: scale(0.97);
+  opacity: 0.9;
 }
 
 .confirm-primary {
-  background: #f5c518;
-  color: #111;
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+.confirm-primary:active {
+  background: var(--accent-hover);
 }
 
 .confirm-primary.danger {
-  background: #e53935;
+  background: var(--accent-error);
   color: #fff;
 }
 
 .confirm-cancel {
-  background: #2a2a2a;
-  color: #fff;
+  background: var(--fill);
+  color: var(--text-primary);
+  border: 1px solid var(--separator);
 }
 </style>

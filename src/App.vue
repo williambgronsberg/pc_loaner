@@ -36,7 +36,7 @@ provide("loading", loading);
     <div
       v-for="t in toasts"
       :key="t.id"
-      class="toast"
+      class="toast glass"
       :class="t.type"
     >{{ t.message }}</div>
   </div>

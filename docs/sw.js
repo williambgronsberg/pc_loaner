@@ -1,15 +1,10 @@
-const CACHE = "rc-utstyr-v1";
+const CACHE = "rc-utstyr-v2";
 
 const STATIC_ASSETS = [
-  "/",
-  "/index.html",
-  "/css/style.css",
-  "/js/firebase-config.js",
-  "/js/db.js",
-  "/js/auth.js",
-  "/js/app.js",
-  "/manifest.json",
-  "/icon.svg"
+  "/pc_loaner/",
+  "/pc_loaner/index.html",
+  "/pc_loaner/manifest.json",
+  "/pc_loaner/icon.svg"
 ];
 
 self.addEventListener("install", (event) => {

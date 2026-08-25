@@ -5,6 +5,7 @@ import { useAuth } from "@/composables/useAuth";
 import { useDb } from "@/composables/useDb";
 import SfIcon from "@/components/SfIcon.vue";
 import ConfirmSheet from "@/components/ConfirmSheet.vue";
+import BaseSheet from "@/components/BaseSheet.vue";
 
 const currentView = inject<ReturnType<typeof ref<ViewName>>>("currentView")!;
 const showToast = inject<(msg: string, type?: ToastType) => void>("showToast")!;
@@ -35,11 +36,21 @@ const tabs = [
 const userEmail = computed(() => currentUser.value?.email ?? "");
 const historyRecords = ref<any[]>([]);
 const historyLastDoc = ref<any>(null);
+const showAddSheet = ref(false);
 const addName = ref("");
 const addType = ref<"pc" | "playstation">("pc");
 const addKeyboard = ref("");
 const addMouse = ref("");
 const addAccessories = ref("");
+
+function openAddSheet() {
+  addName.value = "";
+  addKeyboard.value = "";
+  addMouse.value = "";
+  addAccessories.value = "";
+  addType.value = "pc";
+  showAddSheet.value = true;
+}
 
 async function handleLogout() {
   await logout();
@@ -95,6 +106,7 @@ async function handleAddWs() {
       addKeyboard.value = "";
       addMouse.value = "";
       addAccessories.value = "";
+      showAddSheet.value = false;
   } catch (err) {
     console.error(err);
     showToast("Kunne ikke legge til enheten", "error");
@@ -285,7 +297,10 @@ onMounted(() => {
 
       <!-- Enheter -->
       <section v-show="activeTab === 'manage'">
-        <h2 class="section-title">Enheter</h2>
+        <div class="manage-header">
+          <h2 class="section-title">Enheter</h2>
+          <button class="btn-add-fab" @click="openAddSheet" aria-label="Legg til enhet">+</button>
+        </div>
 
         <div class="card-list manage-list">
           <div v-for="ws in workstations" :key="ws.id" class="card-row manage-row">
@@ -334,43 +349,6 @@ onMounted(() => {
           </div>
           <div v-if="workstations.length === 0" class="empty-state">Ingen enheter</div>
         </div>
-
-        <button class="btn-seed" @click="requestConfirm({ title: 'Sett inn standardenheter?', message: 'Legger til standardenhetene som mangler.', confirmLabel: 'Sett inn', onConfirm: handleSeed })">
-          <SfIcon name="tray.and.arrow.down" :size="16" />
-          Sett inn standardenheter
-        </button>
-
-        <form class="add-form" @submit.prevent="handleAddWs">
-          <h3>Ny enhet</h3>
-          <div class="form-group">
-            <label for="new-name">Navn</label>
-            <input id="new-name" v-model="addName" class="input" placeholder="F.eks. PC 4" required />
-          </div>
-          <div class="form-group">
-            <label>Type</label>
-            <div class="type-picker">
-              <button type="button" class="type-btn" :class="{ active: addType === 'pc' }" @click="addType = 'pc'">
-                <SfIcon name="desktopcomputer" :size="18" /> PC
-              </button>
-              <button type="button" class="type-btn" :class="{ active: addType === 'playstation' }" @click="addType = 'playstation'">
-                <SfIcon name="gamecontroller" :size="18" /> PlayStation
-              </button>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="new-keyboard">{{ addType === 'playstation' ? 'Tilbehør' : 'Tastatur' }}</label>
-            <input id="new-keyboard" v-model="addKeyboard" class="input" :placeholder="addType === 'playstation' ? 'F.eks. Kontroller x2, ladestasjon' : 'F.eks. Tastatur 4'" />
-          </div>
-          <div v-if="addType === 'pc'" class="form-group">
-            <label for="new-mouse">Mus</label>
-            <input id="new-mouse" v-model="addMouse" class="input" placeholder="F.eks. Mus 4" />
-          </div>
-          <div v-if="addType === 'pc'" class="form-group">
-            <label for="new-accessories">Annet tilbehør</label>
-            <input id="new-accessories" v-model="addAccessories" class="input" placeholder="F.eks. Headset" />
-          </div>
-          <button type="submit" class="btn-submit">Legg til</button>
-        </form>
       </section>
     </main>
   </div>
@@ -384,28 +362,62 @@ onMounted(() => {
     @confirm="resolveConfirm"
     @close="closeConfirm"
   />
-</template>
 
+  <BaseSheet :show="showAddSheet" @close="showAddSheet = false">
+    <h3 style="font-size: 1.0625rem; font-weight: 600; margin-bottom: 16px; color: #ffffff;">Ny enhet</h3>
+    <form @submit.prevent="handleAddWs">
+      <div class="form-group">
+        <label for="sheet-new-name">Navn</label>
+        <input id="sheet-new-name" v-model="addName" class="input" placeholder="F.eks. PC 4" required />
+      </div>
+      <div class="form-group">
+        <label>Type</label>
+        <div class="type-picker">
+          <button type="button" class="type-btn" :class="{ active: addType === 'pc' }" @click="addType = 'pc'">
+            <SfIcon name="desktopcomputer" :size="18" /> PC
+          </button>
+          <button type="button" class="type-btn" :class="{ active: addType === 'playstation' }" @click="addType = 'playstation'">
+            <SfIcon name="gamecontroller" :size="18" /> PlayStation
+          </button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="sheet-new-keyboard">{{ addType === 'playstation' ? 'Tilbehør' : 'Tastatur' }}</label>
+        <input id="sheet-new-keyboard" v-model="addKeyboard" class="input" :placeholder="addType === 'playstation' ? 'F.eks. Kontroller x2, ladestasjon' : 'F.eks. Tastatur 4'" />
+      </div>
+      <div v-if="addType === 'pc'" class="form-group">
+        <label for="sheet-new-mouse">Mus</label>
+        <input id="sheet-new-mouse" v-model="addMouse" class="input" placeholder="F.eks. Mus 4" />
+      </div>
+      <div v-if="addType === 'pc'" class="form-group">
+        <label for="sheet-new-accessories">Annet tilbehør</label>
+        <input id="sheet-new-accessories" v-model="addAccessories" class="input" placeholder="F.eks. Headset" />
+      </div>
+      <button type="submit" class="btn-submit" style="margin-top: 8px;">Legg til</button>
+      <button type="button" class="btn btn-secondary btn-full" style="margin-top: 10px;" @click="showAddSheet = false">Avbryt</button>
+    </form>
+  </BaseSheet>
+</template>
 <style scoped>
 .admin-split {
   display: flex;
   height: 100dvh;
   width: 100%;
-  background: #000;
-  color: #fff;
+  background: #1d1d1f;
+  color: #ffffff;
+  font-family: "SF Pro Text", system-ui, -apple-system, sans-serif;
 }
 
 /* ===== Sidebar ===== */
 .sidebar {
   width: 220px;
-  background: #111;
-  border-right: 1px solid #222;
+  background: #2c2c2e;
+  border-right: 1px solid #38383a;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
 }
 
-/* ===== Mobile menu toggle ===== */
 .menu-toggle {
   display: none;
   position: fixed;
@@ -414,56 +426,54 @@ onMounted(() => {
   right: 15px;
   z-index: 300;
   width: calc(100% - 30px);
-  height: 52px;
-  border: 1px solid #f5c518;
-  background: #000;
-  color: #f5c518;
-  border-radius: 12px;
+  height: 48px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 8px 32px rgba(0, 0, 0, 0.4);
+  color: var(--accent);
+  border-radius: 100px;
   align-items: center;
   justify-content: center;
   gap: 8px;
   font-size: 0.9375rem;
-  font-weight: 700;
+  font-weight: 400;
   cursor: pointer;
-  transition: all 0.1s;
+  transition: transform var(--duration-fast) var(--curve-standard), background var(--duration-fast) var(--curve-standard);
 }
 
-.menu-toggle:active {
-  background: #f5c518;
-  color: #111;
-}
-
-.menu-toggle.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
+.menu-toggle:active { transform: scale(0.95); background: var(--glass-bg-strong); }
+.menu-toggle.hidden { opacity: 0; pointer-events: none; }
 
 @media (max-width: 700px) {
-  .menu-toggle {
-    display: flex;
-  }
+  .menu-toggle { display: flex; }
   .sidebar-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.6);
     z-index: 100;
   }
   .sidebar {
     position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    top: auto;
+    left: 0; right: 0; bottom: 0; top: auto;
     width: 100%;
     height: auto;
     max-height: 70dvh;
     z-index: 105;
-    background: #0d0d0d;
-    border-top: 1px solid #2a2a2a;
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    border-top: 1px solid var(--glass-border);
     border-right: none;
-    border-radius: 16px 16px 0 0;
+    border-radius: 18px 18px 0 0;
+    box-shadow:
+      inset 0 1px 0 var(--glass-highlight),
+      0 8px 32px rgba(0, 0, 0, 0.4);
     transform: translateY(100%);
-    transition: transform 0.22s ease;
+    transition: transform 0.22s var(--curve-standard);
     overflow-y: auto;
     padding-bottom: env(safe-area-inset-bottom);
   }
@@ -473,53 +483,31 @@ onMounted(() => {
     width: 36px;
     height: 4px;
     border-radius: 2px;
-    background: #333;
-    margin: 8px auto 0;
+    background: rgba(255,255,255,0.28);
+    margin: 10px auto 0;
     flex-shrink: 0;
   }
-  .sidebar.open {
-    transform: translateY(0);
-  }
-  .sidebar-top {
-    display: flex;
-    padding-top: 8px;
-  }
-  .sidebar-nav {
-    flex-direction: column;
-    padding: 12px 8px;
-    gap: 2px;
-  }
-  .sidebar-item {
-    flex: none;
-    flex-direction: row;
-    justify-content: flex-start;
-    align-items: center;
-    padding: 12px;
-    font-size: 0.9375rem;
-    gap: 10px;
-    border-radius: 10px;
-    min-height: 44px;
-  }
-  .sidebar-item.active {
-    background: #f5c518;
-    color: #111;
-  }
-  .sidebar-footer {
-    display: flex;
-  }
+  .sidebar.open { transform: translateY(0); }
+  .sidebar-top { padding-top: 10px; }
+  .sidebar-nav { flex-direction: column; padding: 8px 16px 16px; gap: 2px; }
+  .sidebar-item { flex: none; flex-direction: row; justify-content: flex-start; padding: 12px; font-size: 0.9375rem; gap: 10px; border-radius: 10px; min-height: 44px; }
+  .sidebar-item.active { background: rgba(245, 197, 24, 0.15); color: #f5c518; }
+  .sidebar-footer { display: block; }
 }
 
 .sidebar-top {
-  padding: 20px 16px 16px;
-  border-bottom: 1px solid #222;
+  padding: 22px 20px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .sidebar-title {
-  font-size: 1.25rem;
-  font-weight: 800;
+  font-family: "SF Pro Display", system-ui, sans-serif;
+  font-size: 1.3125rem;
+  font-weight: 600;
+  letter-spacing: -0.014em;
+  color: #ffffff;
 }
 
 .sidebar-logout {
@@ -527,19 +515,14 @@ onMounted(() => {
   border: none;
   color: #f5c518;
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 400;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 8px;
-}
-
-.sidebar-logout:active {
-  background: #222;
+  padding: 4px 0;
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 12px 8px;
+  padding: 8px 12px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -549,36 +532,33 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 9px 12px;
   border: none;
   background: transparent;
-  color: #888;
+  color: #999999;
   font-size: 0.9375rem;
-  font-weight: 600;
-  border-radius: 10px;
+  font-weight: 400;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.15s, color 0.15s;
   text-align: left;
   width: 100%;
 }
 
-.sidebar-item:active {
-  background: #222;
-}
-
 .sidebar-item.active {
-  background: #f5c518;
-  color: #111;
+  background: rgba(245, 197, 24, 0.12);
+  color: #f5c518;
+  font-weight: 600;
 }
 
 .sidebar-footer {
-  padding: 12px 16px;
-  border-top: 1px solid #222;
+  padding: 14px 20px;
+  border-top: 1px solid #333333;
 }
 
 .sidebar-email {
   font-size: 0.75rem;
-  color: #555;
+  color: #999999;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -587,135 +567,124 @@ onMounted(() => {
 /* ===== Content ===== */
 .admin-content {
   flex: 1;
-  padding: 20px;
+  padding: 32px 40px;
   overflow-y: auto;
+  background: #1d1d1f;
 }
 
 @media (max-width: 700px) {
-  .admin-content {
-    padding: 12px;
-  }
-  .section-title { font-size: 0.9375rem; margin-bottom: 10px; }
+  .admin-content { padding: 20px 16px 90px; }
+  .section-title { font-size: 1.125rem; margin-bottom: 14px; }
 }
 
 .section-title {
-  font-size: 1.0625rem;
-  font-weight: 700;
-  margin-bottom: 14px;
-  color: #fff;
+  font-family: "SF Pro Display", system-ui, sans-serif;
+  font-size: 1.3125rem;
+  font-weight: 600;
+  letter-spacing: -0.016em;
+  margin-bottom: 20px;
+  color: #ffffff;
 }
 
-/* ===== Cards ===== */
-.manage-list {
-  container-type: inline-size;
+.manage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
 }
+
+.manage-header .section-title {
+  margin-bottom: 0;
+}
+
+.btn-add-fab {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #f5c518;
+  color: #1d1d1f;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.btn-add-fab:active {
+  transform: scale(0.92);
+  background: #f7cf3f;
+}
+
+/* ===== Cards ("store-utility-card", dark tile variant) ===== */
+.manage-list { container-type: inline-size; }
 
 .card-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 14px;
+  gap: 10px;
+  margin-bottom: 24px;
 }
 
 .card-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
-  background: #1a1a1a;
-  border-radius: 14px;
-  border: 1px solid #2a2a2a;
+  padding: 16px 18px;
+  background: #272729;
+  border: 1px solid #3a3a3c;
+  border-radius: 18px;
 }
 
 @media (max-width: 700px) {
-  .card-row {
-    padding: 10px 12px;
-    gap: 8px;
-    border-radius: 12px;
-  }
-  .card-body { flex: 1; min-width: 0; }
-  .card-title { font-size: 0.875rem; }
-  .card-meta { font-size: 0.75rem; }
-  .card-status { font-size: 0.7rem; }
-  .add-form { padding: 14px; }
-  .add-form h3 { font-size: 0.875rem; }
-  .type-btn { padding: 10px; font-size: 0.75rem; min-height: 44px; }
-  .btn-return, .btn-edit, .btn-remove {
-    padding: 10px 14px;
-    font-size: 0.8125rem;
-    white-space: nowrap;
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .btn-load, .btn-seed {
-    padding: 12px;
-    font-size: 0.8125rem;
-    min-height: 44px;
-  }
-  .btn-submit { padding: 14px; font-size: 0.875rem; min-height: 48px; }
+  .card-row { padding: 12px 14px; gap: 8px; border-radius: 14px; }
+  .card-title { font-size: 0.9375rem; }
+  .card-meta { font-size: 0.8125rem; }
+  .card-status { font-size: 0.75rem; }
+  .add-form { padding: 20px; }
+  .add-form h3 { font-size: 0.9375rem; }
+  .type-btn { padding: 10px; font-size: 0.8125rem; min-height: 44px; }
+  .btn-return, .btn-edit, .btn-remove { padding: 8px 16px; font-size: 0.8125rem; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; }
+  .btn-load, .btn-seed { padding: 12px; font-size: 0.8125rem; min-height: 44px; }
+  .btn-submit { padding: 14px; font-size: 0.9375rem; min-height: 48px; }
   .form-group label { font-size: 0.8125rem; }
   .edit-inline { gap: 6px; }
   .edit-inline .form-group { min-width: 0; }
-  input.input { font-size: 1rem; padding: 12px 12px; }
+  input.input { font-size: 1rem; padding: 12px; }
   .history-row { flex-direction: column; align-items: flex-start; }
   .history-row .card-body { width: 100%; }
 }
 
 @container (max-width: 360px) {
-  .manage-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
+  .manage-row { flex-direction: column; align-items: stretch; gap: 10px; }
   .manage-row .card-body { width: 100%; }
-  .manage-row .btn-edit,
-  .manage-row .btn-remove {
-    flex: 1;
-    padding: 12px;
-  }
-  .edit-actions {
-    gap: 8px;
-  }
-  .type-picker {
-    flex-wrap: wrap;
-  }
-  .type-btn {
-    min-width: 0;
-  }
-  input.input {
-    font-size: 1rem;
-  }
+  .manage-row .btn-edit, .manage-row .btn-remove { flex: 1; padding: 10px; }
+  .edit-actions { gap: 8px; }
+  .type-picker { flex-wrap: wrap; }
+  .type-btn { min-width: 0; }
+  input.input { font-size: 1rem; }
 }
 
-.manage-row {
-  flex-wrap: wrap;
-}
-
-.edit-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.card-body {
-  flex: 1;
-  min-width: 0;
-}
+.manage-row { flex-wrap: wrap; }
+.card-body { flex: 1; min-width: 0; }
 
 .card-title {
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
 .card-meta {
-  font-size: 0.8125rem;
-  color: #666;
-  margin-top: 2px;
+  font-size: 0.875rem;
+  color: #999999;
+  margin-top: 3px;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -723,72 +692,63 @@ onMounted(() => {
 
 /* ===== Buttons ===== */
 .btn-return {
-  background: none;
-  border: 1px solid #f5c518;
-  color: #f5c518;
-  padding: 8px 14px;
-  border-radius: 10px;
+  background: #f5c518;
+  border: none;
+  color: #1d1d1f;
+  padding: 8px 18px;
+  border-radius: 100px;
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 400;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.1s;
+  transition: transform 0.15s, background 0.15s;
 }
 
-.btn-return:active {
-  background: #f5c518;
-  color: #111;
-}
+.btn-return:active { transform: scale(0.95); background: #f7cf3f; }
 
 .btn-remove {
   background: none;
-  border: 1px solid #ef4444;
-  color: #ef4444;
-  padding: 8px 14px;
-  border-radius: 10px;
+  border: 1px solid #3a3a3c;
+  color: #999999;
+  padding: 8px 18px;
+  border-radius: 100px;
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 400;
   cursor: pointer;
   white-space: nowrap;
+  transition: transform 0.15s, color 0.15s;
 }
 
-.btn-remove:active {
-  background: #ef4444;
-  color: #fff;
-}
+.btn-remove:active { transform: scale(0.95); color: #ff6961; }
 
 .btn-edit {
   background: none;
-  border: 1px solid #555;
-  color: #888;
-  padding: 8px 14px;
-  border-radius: 10px;
+  border: 1px solid #3a3a3c;
+  color: #ffffff;
+  padding: 8px 18px;
+  border-radius: 100px;
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 400;
   cursor: pointer;
   white-space: nowrap;
+  transition: transform 0.15s;
 }
 
-.btn-edit:active {
-  background: #555;
-  color: #fff;
-}
+.btn-edit:active { transform: scale(0.95); background: #333333; }
 
-.edit-inline {
-  width: 100%;
-}
+.edit-inline { width: 100%; }
 
 .edit-name {
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
   margin-bottom: 10px;
 }
 
 .edit-actions {
   display: flex;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .edit-actions .btn-return,
@@ -799,36 +759,35 @@ onMounted(() => {
 .btn-load {
   width: 100%;
   padding: 12px;
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
-  color: #888;
-  border-radius: 14px;
+  background: #272729;
+  border: 1px solid #3a3a3c;
+  color: #ffffff;
+  border-radius: 100px;
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 400;
   cursor: pointer;
+  transition: transform 0.15s;
 }
 
-.btn-load:active {
-  background: #222;
-}
+.btn-load:active { transform: scale(0.98); }
 
-/* ===== Status badge ===== */
+/* ===== Status ===== */
 .card-status {
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 4px 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 4px 12px;
   border-radius: 100px;
   white-space: nowrap;
 }
 
 .card-status.returned {
-  background: #22c55e;
-  color: #fff;
+  background: #333333;
+  color: #999999;
 }
 
 .card-status.active {
-  background: #f5c518;
-  color: #111;
+  background: rgba(245, 197, 24, 0.15);
+  color: #f5c518;
 }
 
 /* ===== Seed button ===== */
@@ -839,44 +798,40 @@ onMounted(() => {
   justify-content: center;
   gap: 8px;
   padding: 12px;
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
-  color: #888;
-  border-radius: 14px;
+  background: #272729;
+  border: 1px solid #3a3a3c;
+  color: #ffffff;
+  border-radius: 100px;
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 400;
   cursor: pointer;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
+  transition: transform 0.15s;
 }
 
-.btn-seed:active {
-  background: #222;
-}
+.btn-seed:active { transform: scale(0.98); }
 
 /* ===== Add form ===== */
 .add-form {
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
-  border-radius: 16px;
-  padding: 20px;
+  background: #252527;
+  border: 1px solid #3a3a3c;
+  border-radius: 18px;
+  padding: 24px;
 }
 
 .add-form h3 {
-  font-size: 0.9375rem;
-  font-weight: 700;
-  margin-bottom: 14px;
-  color: #fff;
+  font-family: "SF Pro Display", system-ui, sans-serif;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #ffffff;
 }
 
 @media (max-width: 700px) {
-  .add-form { padding: 14px; }
   .type-btn { padding: 10px; font-size: 0.8125rem; }
 }
 
-.type-picker {
-  display: flex;
-  gap: 8px;
-}
+.type-picker { display: flex; gap: 8px; }
 
 .type-btn {
   flex: 1;
@@ -886,60 +841,65 @@ onMounted(() => {
   gap: 6px;
   padding: 12px;
   font-size: 0.875rem;
-  font-weight: 600;
-  border: 1px solid #2a2a2a;
-  border-radius: 10px;
-  background: #111;
-  color: #888;
+  font-weight: 400;
+  border: 1px solid #3a3a3c;
+  border-radius: 100px;
+  background: #1d1d1f;
+  color: #999999;
   cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
 }
 
+.type-btn:active { transform: scale(0.96); }
+
 .type-btn.active {
-  border-color: #f5c518;
-  background: #f5c518;
-  color: #111;
+  border: 2px solid #f5c518;
+  color: #f5c518;
+  font-weight: 600;
 }
 
 .btn-submit {
   width: 100%;
   padding: 14px;
   background: #f5c518;
-  color: #111;
+  color: #1d1d1f;
   border: none;
-  border-radius: 12px;
+  border-radius: 100px;
   font-size: 0.9375rem;
-  font-weight: 700;
+  font-weight: 400;
   cursor: pointer;
+  transition: transform 0.15s, background 0.15s;
 }
 
-.btn-submit:active {
-  opacity: 0.85;
-}
+.btn-submit:active { transform: scale(0.97); background: #f7cf3f; }
 
 /* ===== Empty state ===== */
 .empty-state {
   text-align: center;
-  color: #555;
+  color: #666666;
   padding: 32px 16px;
   font-size: 0.875rem;
 }
 
-/* ===== Override global input for dark admin ===== */
+/* ===== Inputs ===== */
 :deep(.input) {
-  background: #111 !important;
-  border-color: #2a2a2a !important;
-  color: #fff !important;
+  background: #1d1d1f !important;
+  border: 1px solid #3a3a3c !important;
+  border-radius: 12px !important;
+  color: #ffffff !important;
 }
 
 :deep(.input:focus) {
   border-color: #f5c518 !important;
+  box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.25) !important;
 }
 
 :deep(.input::placeholder) {
-  color: #555 !important;
+  color: #666666 !important;
 }
 
 :deep(.form-group label) {
-  color: #888 !important;
+  color: #999999 !important;
+  font-size: 0.8125rem !important;
 }
 </style>
