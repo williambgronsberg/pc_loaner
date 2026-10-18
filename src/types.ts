@@ -1,6 +1,6 @@
 import type { Timestamp } from "firebase/firestore";
 
-export type WsType = "pc" | "playstation";
+export type WsType = "pc" | "playstation" | "controller";
 
 export interface Workstation {
   id: string;
@@ -13,6 +13,8 @@ export interface Workstation {
   borrower: string | null;
   borrowedAt: Timestamp | null;
   currentBorrowRecord: string | null;
+  controllerCount?: number;
+  borrowedControllers?: number;
 }
 
 export interface BorrowRecord {

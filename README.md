@@ -105,10 +105,11 @@ git push -u origin main
 
 ### For besøkende (låntakere)
 
-1. Åpne appen
-2. Skriv inn navnet ditt
-3. Trykk på en tilgjengelig enhet (grønn)
-4. Bekreft lånet
+1. Åpne appen og trykk på en tilgjengelig enhet.
+2. Skriv inn navnet og telefonnummeret ditt.
+3. Bekreft lånet.
+
+Kontrollerne vises samlet, for eksempel som **Kontrollere 1–6**. Trykk på knappen og velg hvor mange du vil låne. Hver fysisk kontroller registreres og returneres fortsatt individuelt.
 
 ### For resepsjonen (admin)
 
@@ -116,7 +117,7 @@ git push -u origin main
 2. Logg inn med e-post og passord
 3. **Utlån**: Se aktive lån og returner utstyr
 4. **Historikk**: Se alle tidligere lån
-5. **Enheter**: Legg til eller fjern utstyr
+5. **Enheter**: Legg til eller fjern utstyr. Velg **Kontroller** for å opprette én samlet kontroller-enhet og angi totalantallet. Utlån av kontrollere registreres med antallet som lånes.
 
 ---
 

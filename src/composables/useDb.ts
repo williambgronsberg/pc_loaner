@@ -16,6 +16,7 @@ import {
   deleteDoc,
   serverTimestamp,
   Timestamp,
+  runTransaction,
   type DocumentSnapshot,
 } from "firebase/firestore";
 import { db } from "@/firebase";
@@ -35,12 +36,37 @@ export function useDb() {
 
     for (const record of activeBorrows.value) {
       if (record.borrowedAt && record.borrowedAt.toMillis() <= cutoff.toMillis()) {
+        const workstationRef = doc(db, "workstations", record.workstation);
+        const workstationSnapshot = await getDoc(workstationRef);
+        if (
+          workstationSnapshot.exists() &&
+          workstationSnapshot.data().type === "controller" &&
+          typeof workstationSnapshot.data().controllerCount === "number"
+        ) {
+          await runTransaction(db, async (transaction) => {
+            const [pool, borrow] = await Promise.all([
+              transaction.get(workstationRef),
+              transaction.get(doc(db, "borrowRecords", record.id)),
+            ]);
+            if (!pool.exists() || !borrow.exists() || borrow.data().returnedAt) return;
+            const borrowed = Number(pool.data().borrowedControllers ?? 0);
+            const remainingBorrowed = Math.max(0, borrowed - Number(borrow.data().controllers ?? 0));
+            transaction.update(workstationRef, {
+              borrowedControllers: remainingBorrowed,
+              status: Number(pool.data().controllerCount ?? 0) > remainingBorrowed ? "available" : "borrowed",
+            });
+            transaction.update(doc(db, "borrowRecords", record.id), {
+              returnedAt: serverTimestamp(),
+            });
+          });
+          continue;
+        }
+
         const batch = writeBatch(db);
-        const wsRef = doc(db, "workstations", record.workstation);
         batch.update(doc(db, "borrowRecords", record.id), {
           returnedAt: serverTimestamp(),
         });
-        batch.update(wsRef, {
+        batch.update(workstationRef, {
           status: "available",
           borrower: null,
           borrowedAt: null,
@@ -127,13 +153,73 @@ export function useDb() {
     await batch.commit();
   }
 
-  async function returnWorkstation(wsId: string) {
+  async function borrowControllers(
+    workstationId: string,
+    count: number,
+    name: string,
+    phone: string
+  ) {
+    if (!Number.isInteger(count) || count < 1) {
+      throw new Error("Ugyldig antall kontrollere");
+    }
+
+    await runTransaction(db, async (transaction) => {
+      const workstationRef = doc(db, "workstations", workstationId);
+      const workstation = await transaction.get(workstationRef);
+      if (!workstation.exists() || workstation.data().type !== "controller") {
+        throw new Error("Kontroller-enheten finnes ikke");
+      }
+      const data = workstation.data();
+      const total = Number(data.controllerCount ?? 0);
+      const borrowed = Number(data.borrowedControllers ?? 0);
+      if (count > total - borrowed) {
+        throw new Error("Ikke nok ledige kontrollere. Oppdater siden og prøv igjen.");
+      }
+
+      const recordRef = doc(collection(db, "borrowRecords"));
+      transaction.update(workstationRef, {
+        borrowedControllers: borrowed + count,
+        status: "borrowed",
+      });
+      transaction.set(recordRef, {
+        workstation: workstationId,
+        borrower: name,
+        phone,
+        borrowedAt: serverTimestamp(),
+        returnedAt: null,
+        controllers: count,
+        anonymizedAt: null,
+      });
+    });
+  }
+
+  async function returnWorkstation(wsId: string, recordId?: string) {
     const wsRef = doc(db, "workstations", wsId);
     const snap = await getDoc(wsRef);
     if (!snap.exists()) return;
 
     const ws = snap.data();
-    const recordId = ws.currentBorrowRecord as string | null;
+    const borrowRecordId = recordId ?? (ws.currentBorrowRecord as string | null);
+    if (ws.type === "controller" && typeof ws.controllerCount === "number" && borrowRecordId) {
+      await runTransaction(db, async (transaction) => {
+        const recordRef = doc(db, "borrowRecords", borrowRecordId);
+        const [poolSnapshot, recordSnapshot] = await Promise.all([
+          transaction.get(wsRef),
+          transaction.get(recordRef),
+        ]);
+        if (!poolSnapshot.exists() || !recordSnapshot.exists() || recordSnapshot.data().returnedAt) return;
+        const borrowed = Number(poolSnapshot.data().borrowedControllers ?? 0);
+        const count = Number(recordSnapshot.data().controllers ?? 0);
+        const remainingBorrowed = Math.max(0, borrowed - count);
+        transaction.update(wsRef, {
+          borrowedControllers: remainingBorrowed,
+          status: Number(poolSnapshot.data().controllerCount ?? 0) > remainingBorrowed ? "available" : "borrowed",
+        });
+        transaction.update(recordRef, { returnedAt: serverTimestamp() });
+      });
+      return;
+    }
+
     const borrowerName = ws.borrower as string | null;
     const batch = writeBatch(db);
 
@@ -144,14 +230,14 @@ export function useDb() {
       currentBorrowRecord: null,
     });
 
-    if (recordId) {
+    if (borrowRecordId) {
       const updateData: Record<string, any> = {
         returnedAt: serverTimestamp(),
       };
       if (borrowerName) {
         updateData.borrower = borrowerName;
       }
-      batch.update(doc(db, "borrowRecords", recordId), updateData);
+      batch.update(doc(db, "borrowRecords", borrowRecordId), updateData);
     }
 
     await batch.commit();
@@ -252,14 +338,81 @@ export function useDb() {
     });
   }
 
+  async function addControllers(count: number) {
+    if (!Number.isInteger(count) || count < 1 || count > 100) {
+      throw new Error("Antall kontrollere må være mellom 1 og 100");
+    }
+
+    const poolRef = doc(db, "workstations", "Kontrollere");
+    await runTransaction(db, async (transaction) => {
+      const snapshot = await transaction.get(poolRef);
+      const data = snapshot.data();
+      if (snapshot.exists() && data?.type !== "controller") {
+        throw new Error("En annen enhet bruker navnet «Kontrollere»");
+      }
+      const borrowed = Number(data?.borrowedControllers ?? 0);
+      if (count < borrowed) {
+        throw new Error(`Det er allerede ${borrowed} kontrollere utlånt`);
+      }
+      transaction.set(poolRef, {
+        name: "Kontrollere",
+        type: "controller",
+        keyboard: "",
+        mouse: "",
+        accessories: "",
+        status: count > borrowed ? "available" : "borrowed",
+        borrower: null,
+        borrowedAt: null,
+        currentBorrowRecord: null,
+        controllerCount: count,
+        borrowedControllers: borrowed,
+      });
+    });
+  }
+
   async function removeWorkstation(name: string) {
-    await deleteDoc(doc(db, "workstations", name));
+    const workstationRef = doc(db, "workstations", name);
+    const snapshot = await getDoc(workstationRef);
+    if (snapshot.exists() && snapshot.data().type === "controller" && Number(snapshot.data().borrowedControllers ?? 0) > 0) {
+      throw new Error("Kan ikke fjerne kontrollere mens noen er utlånt");
+    }
+    await deleteDoc(workstationRef);
   }
 
   async function updateWorkstation(
     oldName: string,
-    data: { newName?: string; keyboard?: string; mouse?: string; accessories?: string; type?: WsType }
+    data: { newName?: string; keyboard?: string; mouse?: string; accessories?: string; type?: WsType; controllerCount?: number; controllerName?: string }
   ) {
+    if (data.controllerCount !== undefined || data.controllerName !== undefined) {
+      const controllerCount = data.controllerCount;
+      if (controllerCount !== undefined && (!Number.isInteger(controllerCount) || controllerCount < 1 || controllerCount > 100)) {
+        throw new Error("Antall kontrollere må være mellom 1 og 100");
+      }
+      const controllerName = data.controllerName?.trim();
+      if (data.controllerName !== undefined && !controllerName) {
+        throw new Error("Navnet på kontroller-enheten kan ikke være tomt");
+      }
+      await runTransaction(db, async (transaction) => {
+        const workstationRef = doc(db, "workstations", oldName);
+        const snapshot = await transaction.get(workstationRef);
+        if (!snapshot.exists() || snapshot.data().type !== "controller") {
+          throw new Error("Kontroller-enheten finnes ikke");
+        }
+        const borrowed = Number(snapshot.data().borrowedControllers ?? 0);
+        if (controllerCount !== undefined && controllerCount < borrowed) {
+          throw new Error(`Det er allerede ${borrowed} kontrollere utlånt`);
+        }
+        const updateData: Record<string, unknown> = {};
+        if (controllerCount !== undefined) {
+          updateData.controllerCount = controllerCount;
+          updateData.status = controllerCount > borrowed ? "available" : "borrowed";
+        }
+        if (controllerName) updateData.name = controllerName;
+        transaction.update(workstationRef, updateData);
+      });
+      return;
+    }
+
     const newName = data.newName?.trim();
     if (newName && newName !== oldName) {
       const oldSnap = await getDoc(doc(db, "workstations", oldName));
@@ -291,11 +444,13 @@ export function useDb() {
     subscribeWorkstations,
     subscribeActiveBorrows,
     borrowWorkstation,
+    borrowControllers,
     returnWorkstation,
     getHistory,
     anonymizeOldRecords,
     seedDefaultWorkstations,
     addWorkstation,
+    addControllers,
     removeWorkstation,
     updateWorkstation,
   };

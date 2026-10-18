@@ -8,7 +8,7 @@ const currentView = inject<ReturnType<typeof ref<ViewName>>>("currentView")!;
 const showToast = inject<(msg: string, type?: ToastType) => void>("showToast")!;
 const loading = inject<ReturnType<typeof ref<boolean>>>("loading")!;
 
-const { workstations, subscribeWorkstations, borrowWorkstation } = useDb();
+const { workstations, subscribeWorkstations, borrowWorkstation, borrowControllers } = useDb();
 const { login, sendPasswordReset } = useAuth();
 
 const showReset = ref(false);
@@ -58,16 +58,32 @@ async function handleReset() {
 
 const psList = computed(() => workstations.value.filter((w) => w.type === "playstation"));
 const pcs = computed(() => workstations.value.filter((w) => w.type === "pc"));
+const controllerPool = computed(() =>
+  workstations.value.find((w) => w.type === "controller" && typeof w.controllerCount === "number")
+);
+const controllerTotal = computed(() => controllerPool.value?.controllerCount ?? 0);
+const availableControllerCount = computed(() =>
+  Math.max(0, controllerTotal.value - (controllerPool.value?.borrowedControllers ?? 0))
+);
+const controllerRange = computed(() => controllerPool.value?.name ?? "Kontroller");
 const selected = computed(() => workstations.value.find((ws) => ws.id === selectedWs.value));
 const isPs = computed(() => selected.value?.type === "playstation");
+const isControllerPool = computed(() => selected.value?.type === "controller");
+const maximumSelectableControllers = computed(() =>
+  isControllerPool.value ? availableControllerCount.value : 4
+);
 
 function openBorrow(id: string) {
   selectedWs.value = id;
   borrowerName.value = "";
   borrowerPhone.value = "";
-  controllerCount.value = 0;
+  controllerCount.value = workstations.value.find((ws) => ws.id === id)?.type === "controller" ? 1 : 0;
   showModal.value = true;
   nextTick(() => nameInput.value?.focus());
+}
+
+function openControllerPool() {
+  if (controllerPool.value && availableControllerCount.value > 0) openBorrow(controllerPool.value.id);
 }
 
 function cancel() {
@@ -83,17 +99,31 @@ async function confirm() {
   const phone = borrowerPhone.value.trim();
   if (!name || !selectedWs.value) return;
   if (!phone) return;
-  if (isPs.value && !controllerCount.value) return;
+  if ((isPs.value || isControllerPool.value) && !controllerCount.value) return;
   loading.value = true;
   try {
-    await borrowWorkstation(
-      selectedWs.value,
-      name,
-      phone,
-      isPs.value ? controllerCount.value : undefined
-    );
+    if (isControllerPool.value) {
+      await borrowControllers(
+        selectedWs.value,
+        controllerCount.value,
+        name,
+        phone
+      );
+    } else {
+      await borrowWorkstation(
+        selectedWs.value,
+        name,
+        phone,
+        isPs.value ? controllerCount.value : undefined
+      );
+    }
     showModal.value = false;
-    showToast(`Du låner ${selectedWs.value}`, "success");
+    showToast(
+      isControllerPool.value
+        ? `Du låner ${controllerCount.value} ${controllerCount.value === 1 ? "kontroller" : "kontrollere"}`
+        : `Du låner ${selectedWs.value}`,
+      "success"
+    );
     selectedWs.value = null;
     borrowerName.value = "";
     borrowerPhone.value = "";
@@ -139,6 +169,29 @@ onMounted(() => subscribeWorkstations());
         </div>
       </div>
 
+      <div v-if="controllerPool && controllerTotal" class="controller-row">
+        <div
+          class="ws-block controller-card"
+          :class="availableControllerCount ? 'available' : 'borrowed'"
+          tabindex="0"
+          role="button"
+          :aria-label="`${controllerRange}, ${availableControllerCount} ledige av ${controllerTotal}`"
+          :aria-disabled="availableControllerCount === 0"
+          @click="openControllerPool"
+          @keydown.enter="openControllerPool"
+          @keydown.space.prevent="openControllerPool"
+        >
+          <div class="ws-block-inner">
+            <div class="ws-block-name">{{ controllerRange }}</div>
+            <div class="ws-block-badge" :class="availableControllerCount ? 'available' : 'borrowed'">
+              {{ availableControllerCount
+                ? `${availableControllerCount} av ${controllerTotal} ledige · Trykk for å låne`
+                : "Ingen ledige" }}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="ws-row">
         <div
           v-for="ws in pcs"
@@ -166,8 +219,12 @@ onMounted(() => subscribeWorkstations());
     <Teleport to="body">
       <div v-if="showModal && selected" class="modal-overlay" @click.self="cancel">
         <div class="modal">
-          <h3>{{ selected.name }}</h3>
-          <p class="modal-sub">Skriv navnet ditt for å låne</p>
+          <h3>{{ isControllerPool ? controllerRange : selected.name }}</h3>
+          <p class="modal-sub">
+            {{ isControllerPool
+              ? `${availableControllerCount} ${availableControllerCount === 1 ? "kontroller er ledig" : "kontrollere er ledige"}`
+              : "Skriv navnet ditt for å låne" }}
+          </p>
 
           <div class="form-group">
             <label for="name-input">Ditt navn</label>
@@ -195,18 +252,21 @@ onMounted(() => subscribeWorkstations());
             />
           </div>
 
-          <div v-if="isPs" class="form-group">
+          <div v-if="isPs || isControllerPool" class="form-group">
             <label for="ctrl-input">Antall kontrollere</label>
             <div class="ctrl-select">
-              <button class="ctrl-btn" :class="{ active: controllerCount === 1 }" @click="controllerCount = 1">1</button>
-              <button class="ctrl-btn" :class="{ active: controllerCount === 2 }" @click="controllerCount = 2">2</button>
-              <button class="ctrl-btn" :class="{ active: controllerCount === 3 }" @click="controllerCount = 3">3</button>
-              <button class="ctrl-btn" :class="{ active: controllerCount === 4 }" @click="controllerCount = 4">4</button>
+              <button
+                v-for="count in maximumSelectableControllers"
+                :key="count"
+                class="ctrl-btn"
+                :class="{ active: controllerCount === count }"
+                @click="controllerCount = count"
+              >{{ count }}</button>
             </div>
           </div>
 
           <div class="modal-actions">
-            <button class="btn btn-primary btn-full" :disabled="!borrowerName.trim() || !borrowerPhone.trim() || (isPs && !controllerCount)" @click="confirm">
+            <button class="btn btn-primary btn-full" :disabled="!borrowerName.trim() || !borrowerPhone.trim() || ((isPs || isControllerPool) && !controllerCount)" @click="confirm">
               Bekreft lån
             </button>
             <button class="btn btn-secondary btn-full" @click="cancel">Avbryt</button>
@@ -433,6 +493,17 @@ onMounted(() => subscribeWorkstations());
   gap: 8px;
 }
 
+.controller-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.controller-card {
+  min-height: 110px;
+}
+
 .ws-block {
   flex: 1;
   min-width: 220px;
@@ -450,6 +521,16 @@ onMounted(() => subscribeWorkstations());
 .ws-block.available {
   background: #f5c518;
   color: #1a1a1a;
+}
+
+.controller-card.available {
+  background: #1e88e5;
+  color: #fff;
+}
+
+.controller-card .ws-block-badge.available {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
 }
 
 .ws-block.available:active {
@@ -511,11 +592,13 @@ onMounted(() => subscribeWorkstations());
 
 .ctrl-select {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
 .ctrl-btn {
   flex: 1;
+  min-width: 48px;
   padding: 14px;
   font-size: 1.2rem;
   font-weight: 700;
@@ -559,9 +642,11 @@ onMounted(() => subscribeWorkstations());
   .ws-scroll {
     padding: 8px;
     gap: 8px;
-    overflow: hidden;
+    overflow-y: auto;
     min-height: 0;
   }
+  .controller-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .controller-card { min-height: 88px; }
   .ps-row {
     flex-direction: column;
     flex: 1;

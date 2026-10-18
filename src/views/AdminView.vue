@@ -22,6 +22,7 @@ const {
   anonymizeOldRecords,
   seedDefaultWorkstations,
   addWorkstation,
+  addControllers,
   removeWorkstation,
   updateWorkstation,
 } = useDb();
@@ -34,11 +35,20 @@ const tabs = [
   { key: "manage", label: "Enheter", icon: "gear" },
 ] as const;
 const userEmail = computed(() => currentUser.value?.email ?? "");
+const managedWorkstations = computed(() => {
+  const hasControllerPool = workstations.value.some(
+    (ws) => ws.type === "controller" && typeof ws.controllerCount === "number"
+  );
+  return workstations.value.filter(
+    (ws) => !hasControllerPool || ws.type !== "controller" || typeof ws.controllerCount === "number"
+  );
+});
 const historyRecords = ref<any[]>([]);
 const historyLastDoc = ref<any>(null);
 const showAddSheet = ref(false);
 const addName = ref("");
-const addType = ref<"pc" | "playstation">("pc");
+const addType = ref<"pc" | "playstation" | "controller">("pc");
+const addControllerCount = ref(1);
 const addKeyboard = ref("");
 const addMouse = ref("");
 const addAccessories = ref("");
@@ -48,6 +58,7 @@ function openAddSheet() {
   addKeyboard.value = "";
   addMouse.value = "";
   addAccessories.value = "";
+  addControllerCount.value = 1;
   addType.value = "pc";
   showAddSheet.value = true;
 }
@@ -57,10 +68,10 @@ async function handleLogout() {
   currentView.value = "student";
 }
 
-async function handleReturn(wsId: string) {
+async function handleReturn(wsId: string, recordId?: string) {
   loading.value = true;
   try {
-    await returnWorkstation(wsId);
+    await returnWorkstation(wsId, recordId);
     showToast(`${wsId} er returnert`, "success");
   } catch (err) {
     console.error(err);
@@ -97,16 +108,21 @@ async function handleSeed() {
 }
 
 async function handleAddWs() {
-  if (!addName.value.trim()) return;
+  if (addType.value === "controller" ? addControllerCount.value < 1 : !addName.value.trim()) return;
   loading.value = true;
   try {
-    await addWorkstation(addName.value.trim(), addType.value, addKeyboard.value.trim(), addMouse.value.trim(), addAccessories.value.trim());
+    if (addType.value === "controller") {
+      await addControllers(addControllerCount.value);
+      showToast(`${addControllerCount.value} kontroller${addControllerCount.value === 1 ? "" : "e"} er lagt til`, "success");
+    } else {
+      await addWorkstation(addName.value.trim(), addType.value, addKeyboard.value.trim(), addMouse.value.trim(), addAccessories.value.trim());
       showToast(`${addName.value} er lagt til`, "success");
-      addName.value = "";
-      addKeyboard.value = "";
-      addMouse.value = "";
-      addAccessories.value = "";
-      showAddSheet.value = false;
+    }
+    addName.value = "";
+    addKeyboard.value = "";
+    addMouse.value = "";
+    addAccessories.value = "";
+    showAddSheet.value = false;
   } catch (err) {
     console.error(err);
     showToast("Kunne ikke legge til enheten", "error");
@@ -155,15 +171,17 @@ function resolveConfirm() {
 
 const editingWs = ref<string | null>(null);
 const editName = ref("");
-const editType = ref<"pc" | "playstation">("pc");
+const editType = ref<"pc" | "playstation" | "controller">("pc");
 const editKeyboard = ref("");
 const editMouse = ref("");
 const editAccessories = ref("");
+const editControllerCount = ref(1);
 
-function startEdit(ws: { id: string; name: string; type: string; keyboard: string; mouse: string; accessories: string }) {
+function startEdit(ws: { id: string; name: string; type: string; keyboard: string; mouse: string; accessories: string; controllerCount?: number }) {
   editingWs.value = ws.id;
   editName.value = ws.name;
-  editType.value = ws.type as "pc" | "playstation";
+  editType.value = ws.type as "pc" | "playstation" | "controller";
+  editControllerCount.value = ws.controllerCount ?? 1;
   editKeyboard.value = ws.keyboard || "";
   editMouse.value = ws.mouse || "";
   editAccessories.value = ws.accessories || "";
@@ -177,13 +195,20 @@ async function saveEdit() {
   if (!editingWs.value) return;
   loading.value = true;
   try {
-    await updateWorkstation(editingWs.value, {
-      newName: editName.value.trim(),
-      type: editType.value,
-      keyboard: editKeyboard.value.trim(),
-      mouse: editMouse.value.trim(),
-      accessories: editAccessories.value.trim(),
-    });
+    if (editType.value === "controller") {
+      await updateWorkstation(editingWs.value, {
+        controllerName: editName.value,
+        controllerCount: editControllerCount.value,
+      });
+    } else {
+      await updateWorkstation(editingWs.value, {
+        newName: editName.value.trim(),
+        type: editType.value,
+        keyboard: editKeyboard.value.trim(),
+        mouse: editMouse.value.trim(),
+        accessories: editAccessories.value.trim(),
+      });
+    }
     showToast(`${editingWs.value} er oppdatert`, "success");
     editingWs.value = null;
   } catch (err) {
@@ -267,7 +292,7 @@ onMounted(() => {
                 {{ formatTime(rec.borrowedAt) }}
               </div>
             </div>
-            <button class="btn-return" @click="requestConfirm({ title: `Returner ${rec.workstation}?`, message: 'Enheten blir tilgjengelig igjen etter retur.', confirmLabel: 'Returner', onConfirm: () => handleReturn(rec.workstation) })">Returner</button>
+            <button class="btn-return" @click="requestConfirm({ title: `Returner ${rec.workstation}?`, message: 'Enheten blir tilgjengelig igjen etter retur.', confirmLabel: 'Returner', onConfirm: () => handleReturn(rec.workstation, rec.id) })">Returner</button>
           </div>
         </div>
       </section>
@@ -303,12 +328,14 @@ onMounted(() => {
         </div>
 
         <div class="card-list manage-list">
-          <div v-for="ws in workstations" :key="ws.id" class="card-row manage-row">
+          <div v-for="ws in managedWorkstations" :key="ws.id" class="card-row manage-row">
             <template v-if="editingWs === ws.id">
               <div class="edit-inline">
                 <div class="form-group">
-                  <label>Navn</label>
-                  <input v-model="editName" class="input" placeholder="Navn" />
+                  <template v-if="editType !== 'controller'">
+                    <label>Navn</label>
+                    <input v-model="editName" class="input" placeholder="Navn" />
+                  </template>
                 </div>
                 <div class="type-picker" style="margin-bottom:8px;">
                   <button type="button" class="type-btn" :class="{ active: editType === 'pc' }" @click="editType = 'pc'">
@@ -317,8 +344,25 @@ onMounted(() => {
                   <button type="button" class="type-btn" :class="{ active: editType === 'playstation' }" @click="editType = 'playstation'">
                     <SfIcon name="gamecontroller" :size="16" /> PS
                   </button>
+                  <button type="button" class="type-btn" :class="{ active: editType === 'controller' }" @click="editType = 'controller'">
+                    <SfIcon name="gamecontroller" :size="16" /> Kontroller
+                  </button>
                 </div>
-                <input v-model="editKeyboard" class="input" :placeholder="editType === 'playstation' ? 'Tilbehør' : 'Tastatur'" style="margin-bottom:6px;" />
+                <div v-if="editType === 'controller'" class="form-group">
+                  <label>Navn</label>
+                  <input v-model="editName" class="input" placeholder="Navn på enheten" required style="margin-bottom:6px;" />
+                  <label>Totalt antall kontrollere</label>
+                  <input
+                    v-model.number="editControllerCount"
+                    class="input"
+                    type="number"
+                    min="1"
+                    max="100"
+                    step="1"
+                    required
+                  />
+                </div>
+                <input v-if="editType !== 'controller'" v-model="editKeyboard" class="input" :placeholder="editType === 'playstation' ? 'Tilbehør' : 'Tastatur'" style="margin-bottom:6px;" />
                 <input v-if="editType === 'pc'" v-model="editMouse" class="input" placeholder="Mus" style="margin-bottom:6px;" />
                 <input v-if="editType === 'pc'" v-model="editAccessories" class="input" placeholder="Annet tilbehør" style="margin-bottom:6px;" />
                 <div class="edit-actions">
@@ -330,24 +374,27 @@ onMounted(() => {
             <template v-else>
               <div class="card-body">
                 <div class="card-title">
-                  <SfIcon :name="ws.type === 'playstation' ? 'gamecontroller' : 'desktopcomputer'" :size="16" />
+                  <SfIcon :name="ws.type === 'pc' ? 'desktopcomputer' : 'gamecontroller'" :size="16" />
                   {{ ws.name }}
                 </div>
-                <div class="card-meta">{{ ws.status === 'available' ? 'Ledig' : 'Utlånt' }}</div>
+                <div v-if="ws.type === 'controller'" class="card-meta">
+                  {{ Math.max(0, (ws.controllerCount ?? 0) - (ws.borrowedControllers ?? 0)) }} av {{ ws.controllerCount ?? 0 }} ledige
+                </div>
+                <div v-else class="card-meta">{{ ws.status === 'available' ? 'Ledig' : 'Utlånt' }}</div>
               </div>
               <button
-                v-if="ws.status === 'available'"
+                v-if="ws.status === 'available' || ws.type === 'controller'"
                 class="btn-edit"
                 @click="startEdit(ws)"
               >Rediger</button>
               <button
-                v-if="ws.status === 'available'"
+                v-if="ws.status === 'available' && !(ws.type === 'controller' && (ws.borrowedControllers ?? 0) > 0)"
                 class="btn-remove"
                 @click="requestConfirm({ title: `Fjern ${ws.name}?`, message: 'Enheten og dens lån blir slettet.', confirmLabel: 'Fjern', danger: true, onConfirm: () => handleRemoveWs(ws.name) })"
               >Fjern</button>
             </template>
           </div>
-          <div v-if="workstations.length === 0" class="empty-state">Ingen enheter</div>
+          <div v-if="managedWorkstations.length === 0" class="empty-state">Ingen enheter</div>
         </div>
       </section>
     </main>
@@ -366,7 +413,7 @@ onMounted(() => {
   <BaseSheet :show="showAddSheet" @close="showAddSheet = false">
     <h3 style="font-size: 1.0625rem; font-weight: 600; margin-bottom: 16px; color: #ffffff;">Ny enhet</h3>
     <form @submit.prevent="handleAddWs">
-      <div class="form-group">
+      <div v-if="addType !== 'controller'" class="form-group">
         <label for="sheet-new-name">Navn</label>
         <input id="sheet-new-name" v-model="addName" class="input" placeholder="F.eks. PC 4" required />
       </div>
@@ -379,9 +426,26 @@ onMounted(() => {
           <button type="button" class="type-btn" :class="{ active: addType === 'playstation' }" @click="addType = 'playstation'">
             <SfIcon name="gamecontroller" :size="18" /> PlayStation
           </button>
+          <button type="button" class="type-btn" :class="{ active: addType === 'controller' }" @click="addType = 'controller'">
+            <SfIcon name="gamecontroller" :size="18" /> Kontroller
+          </button>
         </div>
       </div>
-      <div class="form-group">
+      <div v-if="addType === 'controller'" class="form-group">
+        <label for="sheet-controller-count">Totalt antall kontrollere</label>
+        <input
+          id="sheet-controller-count"
+          v-model.number="addControllerCount"
+          class="input"
+          type="number"
+          min="1"
+          max="100"
+          step="1"
+          required
+        />
+        <small class="controller-help">Legges til som én samlet enhet. Hver utlånsregistrering sporer antallet som er lånt (maks 100).</small>
+      </div>
+      <div v-else class="form-group">
         <label for="sheet-new-keyboard">{{ addType === 'playstation' ? 'Tilbehør' : 'Tastatur' }}</label>
         <input id="sheet-new-keyboard" v-model="addKeyboard" class="input" :placeholder="addType === 'playstation' ? 'F.eks. Kontroller x2, ladestasjon' : 'F.eks. Tastatur 4'" />
       </div>
@@ -671,6 +735,13 @@ onMounted(() => {
 
 .manage-row { flex-wrap: wrap; }
 .card-body { flex: 1; min-width: 0; }
+
+.controller-help {
+  display: block;
+  margin-top: 6px;
+  color: #999999;
+  font-size: 0.75rem;
+}
 
 .card-title {
   font-size: 1rem;
